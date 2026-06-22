@@ -1,0 +1,32 @@
+# dependencies
+node_modules/
+
+# build output
+.next/
+dist/
+build/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# logs
+*.log
+npm-debug.log*
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# local generated folders
+outputs/
+work/

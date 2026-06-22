@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: crh-create-ai-api
+    runtime: python
+    rootDir: apps/api
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.4
+      - key: API_CORS_ORIGIN
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: CUSTOM_API_KEY
+        sync: false
+      - key: CUSTOM_BASE_URL
+        sync: false
+      - key: CUSTOM_MODEL
+        sync: false
