@@ -8,7 +8,7 @@ import { solveProblem } from "@/lib/api";
 import type { Profile, Provider, SolveResponse, Subject } from "@/lib/types";
 
 export default function HomePage() {
-  const [question, setQuestion] = useState("求图9最大功率传输");
+  const [question, setQuestion] = useState("A =\n1 2\n3 4\n求行列式");
   const [subject, setSubject] = useState<Subject>("auto");
   const [provider, setProvider] = useState<Provider>("auto");
   const [profile, setProfile] = useState<Profile>("auto");
@@ -40,7 +40,7 @@ export default function HomePage() {
           <div className="grid h-9 w-9 place-items-center border-2 border-neutral-950 font-black">c</div>
           <div>
             <h1 className="text-lg font-black leading-5">crh create AI</h1>
-            <p className="text-xs text-neutral-600">工科版 Photomath，可视化解题平台 V2</p>
+            <p className="text-xs text-neutral-600">工科版 Photomath，可视化解题平台</p>
           </div>
         </div>
         <ModelSelector

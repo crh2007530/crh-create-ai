@@ -6,7 +6,8 @@ const modelsByProvider: Record<Provider, string[]> = {
   auto: ["自动选择"],
   openai: ["gpt-5", "gpt-5-mini"],
   gemini: ["gemini-pro", "gemini-flash"],
-  deepseek: ["deepseek-reasoner", "deepseek-chat"]
+  deepseek: ["deepseek-reasoner", "deepseek-chat"],
+  custom: ["OpenAI Compatible"]
 };
 
 export function ModelSelector(props: {
@@ -47,6 +48,7 @@ export function ModelSelector(props: {
         <option value="openai">OpenAI</option>
         <option value="gemini">Gemini</option>
         <option value="deepseek">DeepSeek</option>
+        <option value="custom">自定义 API</option>
       </select>
       <select
         className="h-9 border border-neutral-300 bg-white px-3"

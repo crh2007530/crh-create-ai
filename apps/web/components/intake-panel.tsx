@@ -1,6 +1,6 @@
 "use client";
 
-import { ImagePlus, Send, FileText } from "lucide-react";
+import { FileText, ImagePlus, Send } from "lucide-react";
 import type { Subject } from "@/lib/types";
 
 export function IntakePanel(props: {
@@ -13,7 +13,7 @@ export function IntakePanel(props: {
   onFile: (file: File | null) => void;
   onSolve: () => void;
 }) {
-  const examples = ["求图9最大功率传输", "求矩阵A的逆矩阵", "求三相负载线电流"];
+  const examples = ["求图9最大功率传输", "A =\n1 2\n3 4\n求逆矩阵", "A =\n1 2\n3 4\n求矩阵的秩"];
 
   return (
     <section className="textbook-panel p-4">
@@ -26,7 +26,7 @@ export function IntakePanel(props: {
         />
         <div className="grid gap-2">
           <button
-            className="inline-flex h-10 items-center justify-center gap-2 border border-neutral-900 bg-neutral-900 px-4 font-bold text-white"
+            className="inline-flex h-10 items-center justify-center gap-2 border border-neutral-900 bg-neutral-900 px-4 font-bold text-white disabled:opacity-60"
             onClick={props.onSolve}
             disabled={props.loading}
           >
@@ -59,7 +59,7 @@ export function IntakePanel(props: {
         {examples.map((example) => (
           <button
             key={example}
-            className="min-h-8 border border-neutral-300 bg-neutral-50 px-3"
+            className="min-h-8 whitespace-pre-line border border-neutral-300 bg-neutral-50 px-3 text-left"
             onClick={() => props.onQuestion(example)}
           >
             {example}

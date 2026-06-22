@@ -14,8 +14,9 @@ export function ResultLayout(props: {
     <section className="grid gap-3 lg:grid-cols-[25fr_35fr_40fr]">
       <aside className="textbook-panel p-3">
         <div className="mb-3 border-b border-neutral-300 pb-2 font-extrabold">原题</div>
-        <div className="min-h-44 border border-dashed border-neutral-400 bg-neutral-50 p-4 text-sm leading-7 text-neutral-600">
-          {solution?.problem.original_text ?? "输入文字、上传图片、粘贴截图或上传 PDF 后，系统先识别题目，再重画电路图/矩阵结构。"}
+        <div className="min-h-44 whitespace-pre-wrap border border-dashed border-neutral-400 bg-neutral-50 p-4 text-sm leading-7 text-neutral-700">
+          {solution?.problem.original_text ??
+            "输入文字、上传图片、粘贴截图或上传 PDF 后，系统会先识别题目，再生成对应的步骤图。"}
         </div>
         <div className="mt-3 grid gap-2 border-t border-neutral-300 pt-3 text-sm text-neutral-600">
           <div className="flex justify-between gap-3">
@@ -25,6 +26,12 @@ export function ResultLayout(props: {
           <div className="flex justify-between gap-3">
             <span>主题</span>
             <strong className="text-right text-neutral-950">{solution?.problem.topic ?? "-"}</strong>
+          </div>
+          <div className="flex justify-between gap-3">
+            <span>验证</span>
+            <strong className="text-right text-neutral-950">
+              {solution?.visual_solution?.validationSummary ?? "-"}
+            </strong>
           </div>
           <div className="flex justify-between gap-3">
             <span>视觉模型</span>
@@ -52,7 +59,7 @@ export function ResultLayout(props: {
         {solution ? <StepList steps={solution.steps} activeIndex={props.activeIndex} onStep={props.onStep} /> : null}
         <div className="mt-3 border border-neutral-300 bg-white p-3">
           <div className="mb-2 text-xs font-bold text-neutral-500">公式</div>
-          <div className="font-mono leading-7">{activeStep?.formula ?? "生成后显示当前步骤公式。"}</div>
+          <div className="whitespace-pre-wrap font-mono leading-7">{activeStep?.formula ?? "生成后显示当前步骤公式。"}</div>
         </div>
         <div className="mt-3 border-l-4 border-neutral-950 bg-neutral-50 p-3 leading-7">
           <strong className="block">为什么这样做？</strong>

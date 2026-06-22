@@ -1,4 +1,5 @@
 import type { Profile, Provider, SolveResponse, Subject } from "./types";
+import { solveLocally } from "./local-solver";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api/backend";
 
@@ -10,6 +11,11 @@ export async function solveProblem(input: {
   model?: string;
   file?: File | null;
 }): Promise<SolveResponse> {
+  const localOnly = process.env.NEXT_PUBLIC_LOCAL_SOLVER === "true";
+  if (localOnly) {
+    return solveLocally(input);
+  }
+
   const form = new FormData();
   form.set("question", input.question);
   form.set("subject", input.subject);
@@ -21,11 +27,15 @@ export async function solveProblem(input: {
   const response = await fetch(`${API_URL}/solve`, {
     method: "POST",
     body: form
-  });
+  }).catch(() => null);
 
-  if (!response.ok) {
-    throw new Error(`Solve failed: ${response.status}`);
+  if (!response || !response.ok) {
+    return solveLocally(input);
   }
 
-  return response.json();
+  try {
+    return await response.json();
+  } catch {
+    return solveLocally(input);
+  }
 }
