@@ -1,4 +1,4 @@
-import type { Profile, Provider, SolveResponse, Subject, Visualization } from "./types";
+﻿import type { Profile, Provider, SolveResponse, Subject, Visualization } from "./types";
 
 type Topic = "determinant" | "inverse_matrix" | "matrix_rank" | "gaussian_elimination" | "node_voltage";
 
@@ -14,7 +14,7 @@ type MatrixResult = {
 function detectSubject(question: string, subject: Subject): "linear_algebra" | "circuit" {
   if (subject === "linear_algebra") return "linear_algebra";
   if (subject === "circuit") return "circuit";
-  return /矩阵|行列式|逆矩阵|求逆|秩|高斯|matrix|det|rank|inverse/i.test(question)
+  return /矩阵|行列式|逆矩阵|求逆|秩|高斯|消元|行变换|matrix|det|rank|inverse/i.test(question) || parseMatrix(question) !== null
     ? "linear_algebra"
     : "circuit";
 }
@@ -26,7 +26,6 @@ function detectTopic(question: string, domain: "linear_algebra" | "circuit"): To
   if (/秩|rank/i.test(question)) return "matrix_rank";
   return "gaussian_elimination";
 }
-
 function parseMatrix(question: string): number[][] | null {
   const rows = question
     .split(/\r?\n/)
@@ -139,13 +138,13 @@ function circuitSvg(title: string, goal: string, conclusion: string, body: strin
   <style>.h1{font:800 20px Arial;fill:#111}.label{font:700 14px Arial;fill:#111}.text{font:600 13px Arial;fill:#333}.wire{stroke:#111;stroke-width:3;fill:none;stroke-linecap:round}.muted{stroke:#bcbcbc;fill:none;stroke-width:2.2}.box{fill:#f8f8f8;stroke:#111;stroke-width:1.6}</style>
   <rect x="16" y="16" width="358" height="58" fill="#f7f7f7" stroke="#111"/>
   <text x="28" y="40" class="h1">${title}</text>
-  <text x="28" y="62" class="text">本步目标：${goal}</text>
+  <text x="28" y="62" class="text">鏈鐩爣锛?{goal}</text>
   <g transform="translate(0 92)">${body}</g>
   <rect x="16" y="432" width="358" height="50" class="box"/>
-  <text x="28" y="454" class="label">本步结论</text>
+  <text x="28" y="454" class="label">鏈缁撹</text>
   <text x="28" y="474" class="text">${conclusion}</text>
   <rect x="16" y="494" width="358" height="46" fill="#fff" stroke="#d0d0d0"/>
-  <text x="28" y="520" class="text">老师解释：${explanation}</text>
+  <text x="28" y="520" class="text">鑰佸笀瑙ｉ噴锛?{explanation}</text>
 </svg>`;
 }
 
@@ -160,7 +159,7 @@ function firstRowExpansionFormula(matrix: number[][]): { symbolic: string; subst
     const [[a, b], [c, d]] = matrix;
     return {
       symbolic: "det(A) = a11a22 - a12a21",
-      substituted: `det(A) = ${formatNumber(a)}×${formatNumber(d)} - ${formatNumber(b)}×${formatNumber(c)}`,
+      substituted: `det(A) = ${formatNumber(a)}脳${formatNumber(d)} - ${formatNumber(b)}脳${formatNumber(c)}`,
       value: `det(A) = ${formatNumber(determinant(matrix) ?? 0)}`
     };
   }
@@ -168,7 +167,7 @@ function firstRowExpansionFormula(matrix: number[][]): { symbolic: string; subst
   const terms = matrix[0].map((value, colIndex) => {
     const sign = colIndex % 2 === 0 ? "+" : "-";
     const minorDet = determinant(minorMatrix(matrix, 0, colIndex)) ?? 0;
-    return `${sign} ${formatNumber(value)}×(${formatNumber(minorDet)})`;
+    return `${sign} ${formatNumber(value)}脳(${formatNumber(minorDet)})`;
   });
   return {
     symbolic: "det(A) = a11M11 - a12M12 + a13M13 ...",
@@ -241,12 +240,12 @@ function solveMatrix(question: string, topic: Topic): { answer: string; result: 
   const finalMatrix = topic === "inverse_matrix" && inverse ? inverse : topic === "gaussian_elimination" ? reduced.echelon : matrix;
   const answer =
     topic === "matrix_rank"
-        ? `rank(A) = ${reduced.rank}`
-        : topic === "inverse_matrix"
-          ? inverse
-            ? `A^-1 =\n${matrixText(inverse)}`
-            : "当前浏览器预览只支持 2x2 可逆矩阵演示"
-          : `阶梯形矩阵：\n${matrixText(reduced.echelon)}`;
+      ? `rank(A) = ${reduced.rank}`
+      : topic === "inverse_matrix"
+        ? inverse
+          ? `A^-1 =\n${matrixText(inverse)}`
+          : "当前本地预览只支持 2×2 可逆矩阵演示。"
+        : `阶梯形矩阵：\n${matrixText(reduced.echelon)}`;
   const steps = [
     ["读入矩阵", "先把题目中的矩阵写成标准形式。", `A =\n${matrixText(matrix)}`, matrix, "原矩阵 A"],
     ["选择方法", "先判断题目目标，再选择求逆、求秩或行变换路线。", reduced.rowSteps[0] ?? "寻找主元", matrix, "高亮主元位置"],
@@ -267,19 +266,18 @@ function solveMatrix(question: string, topic: Topic): { answer: string; result: 
     }))
   };
 }
-
 function solveCircuit(): { answer: string; steps: SolveResponse["solution"]["steps"] } {
   const bodies = [
-    '<circle cx="195" cy="165" r="56" fill="#fff7cc" stroke="#111" stroke-width="3"/><text x="158" y="158" class="label">题目要求</text><text x="166" y="184" class="h1">求 VA / I</text><text x="108" y="304" class="text">先看题目问什么，不急着算。</text>',
+    '<circle cx="195" cy="165" r="56" fill="#fff7cc" stroke="#111" stroke-width="3"/><text x="158" y="158" class="label">题目要求</text><text x="166" y="184" class="h1">求 VA / I</text><text x="108" y="304" class="text">先看题目问什么，不急着计算。</text>',
     '<circle cx="195" cy="140" r="78" fill="#fff7cc" stroke="#111" stroke-width="4"/><circle cx="195" cy="140" r="7" fill="#111"/><text x="151" y="132" class="h1">Node A</text><text x="137" y="166" class="text">未知节点电压 VA</text><path class="wire" d="M195 218 V286"/><text x="105" y="340" class="text">其它部分灰化，只盯住 Node A。</text>',
     '<circle cx="195" cy="152" r="62" fill="#fff" stroke="#111" stroke-width="3"/><text x="167" y="158" class="h1">Node A</text><path d="M72 104 H142" stroke="#111" stroke-width="5" marker-end="url(#arrow)"/><text x="91" y="88" class="h1">I1</text><path d="M292 104 V176" stroke="#111" stroke-width="5" marker-end="url(#arrow)"/><text x="306" y="142" class="h1">I2</text><text x="62" y="340" class="text">方向是假设，负值表示实际相反。</text><defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#111"/></marker></defs>',
-    '<circle cx="195" cy="118" r="54" fill="#fff7cc" stroke="#111" stroke-width="4"/><text x="168" y="124" class="h1">Node A</text><rect x="40" y="226" width="310" height="88" fill="#fff" stroke="#111" stroke-width="2"/><text x="68" y="260" class="h1">KCL</text><text x="68" y="292" class="label">I1 + I2 = 0</text><text x="54" y="350" class="text">这一步不需要再画完整电路。</text>',
+    '<circle cx="195" cy="118" r="54" fill="#fff7cc" stroke="#111" stroke-width="4"/><text x="168" y="124" class="h1">Node A</text><rect x="40" y="226" width="310" height="88" fill="#fff" stroke="#111" stroke-width="2"/><text x="68" y="260" class="h1">KCL</text><text x="68" y="292" class="label">I1 + I2 = 0</text><text x="54" y="350" class="text">这一步只围绕关键节点列式。</text>',
     '<rect x="44" y="58" width="302" height="236" fill="#fff" stroke="#111" stroke-width="2"/><text x="78" y="112" class="label">最终结果</text><text x="78" y="162" class="h1">VA = 6V</text><text x="78" y="210" class="h1">I = 2A</text><text x="78" y="258" class="text">把答案放回图里检查单位。</text>'
   ];
   const meta = [
-    ["识别题目", "找出题目要求的 VA 或 I", "目标量已确定，下一步选择分析对象。", "先锁定题目要求的量，不急着套公式。", "target: VA, I"],
+    ["识别题目", "找出题目要求的 VA 或 I", "目标量已确定，下一步选择分析对象。", "先锁定题目要问的量，不急着套公式。", "target: VA, I"],
     ["确定分析对象", "只盯住 Node A", "Node A 已确定，下一步标参考方向。", "节点法先抓关键未知节点。", "unknown: VA"],
-    ["标参考方向", "确定电流参考方向", "参考方向建立完成，下一步列 KCL。", "参考方向可任意假设。", "assume I1, I2"],
+    ["标参考方向", "确定电流参考方向", "参考方向建立完成，下一步列 KCL。", "参考方向可以任意假设。", "assume I1, I2"],
     ["列 KCL", "围绕 Node A 写 KCL", "KCL 方程已建立，下一步求解。", "只看 Node A 的流入流出。", "I1 + I2 = 0"],
     ["求解结果", "把答案标回图中", "结果已回到图中，可以完成检查。", "检查单位、方向和物理意义。", "VA = 6V, I = 2A"]
   ] as const;
@@ -295,7 +293,6 @@ function solveCircuit(): { answer: string; steps: SolveResponse["solution"]["ste
     }))
   };
 }
-
 export function solveLocally(input: {
   question: string;
   subject: Subject;
@@ -329,6 +326,9 @@ export function solveLocally(input: {
     provider: reasonProvider,
     model: reasonModel,
     model_status: "engine_template",
-    warnings: input.file ? ["公网静态版已支持图片上传入口；真实图片识别需要云端 Vision API。"] : []
+    warnings: input.file ? ["公网静态版支持图片/PDF 上传入口；真实识题需要保存自己的 Vision API。"] : []
   };
 }
+
+
+

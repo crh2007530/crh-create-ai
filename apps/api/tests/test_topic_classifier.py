@@ -17,6 +17,20 @@ def test_classifies_linear_inverse_matrix():
     assert 1 <= result.difficulty <= 5
 
 
+def test_classifies_plain_matrix_lines_as_linear_algebra():
+    result = classify_topic("A =\n1 2\n3 4")
+
+    assert result.domain == "linear_algebra"
+    assert result.topic == "gaussian_elimination"
+
+
+def test_classifies_matrix_image_text_with_determinant_as_linear_algebra():
+    result = classify_topic("1 2\n3 4\n求行列式")
+
+    assert result.domain == "linear_algebra"
+    assert result.topic == "determinant"
+
+
 def test_classifies_unknown_as_generic():
     result = classify_topic("解释一下学习计划怎么安排")
 

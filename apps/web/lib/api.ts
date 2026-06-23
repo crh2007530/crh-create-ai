@@ -134,7 +134,8 @@ async function extractProblemTextInBrowser(config: ApiConfig, file: File): Promi
   if (config.provider === "deepseek") {
     throw new Error("DeepSeek 不支持直接读取图片或 PDF，请换 OpenAI、Gemini 或支持文件的 Custom API");
   }
-  const prompt = "Extract the engineering or math problem text from this file. Return only the problem statement.";
+  const prompt =
+    "Extract the engineering or math problem from this file. If it is a matrix or linear algebra problem, preserve the matrix rows exactly and include words like matrix, determinant, inverse, rank, or row reduction when visible. If it is a circuit problem, mention circuit components and requested quantities. Return only the problem statement, not a solution.";
   if (config.provider === "gemini") return callGeminiFileExtraction(config, prompt, file);
   return callOpenAICompatibleFileExtraction(config, prompt, file);
 }

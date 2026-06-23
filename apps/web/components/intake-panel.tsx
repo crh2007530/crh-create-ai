@@ -28,6 +28,18 @@ export function IntakePanel(props: {
           onChange={(event) => props.onQuestion(event.target.value)}
         />
 
+        <div className="grid grid-cols-3 gap-2 text-sm">
+          <SubjectButton active={props.subject === "auto"} onClick={() => props.onSubject("auto")}>
+            自动识别
+          </SubjectButton>
+          <SubjectButton active={props.subject === "linear_algebra"} onClick={() => props.onSubject("linear_algebra")}>
+            线性代数
+          </SubjectButton>
+          <SubjectButton active={props.subject === "circuit"} onClick={() => props.onSubject("circuit")}>
+            电路分析
+          </SubjectButton>
+        </div>
+
         {props.fileName ? (
           <div className="grid gap-2 border border-neutral-300 bg-neutral-50 p-2 sm:grid-cols-[120px_1fr_auto] sm:items-center">
             {props.imagePreviewUrl ? (
@@ -40,7 +52,7 @@ export function IntakePanel(props: {
             <div className="min-w-0 text-sm text-neutral-700">
               <div className="font-bold text-neutral-950">{props.fileKind === "pdf" ? "PDF 已选择" : "文件已选择"}</div>
               <div className="mt-1 truncate">{props.fileName}</div>
-              <div className="mt-1 text-neutral-500">开始讲题后会先识别题目文本。</div>
+              <div className="mt-1 text-neutral-500">如果识别错科目，可先切换“线性代数/电路分析”再开始讲题。</div>
             </div>
             <button className="inline-flex h-9 items-center justify-center gap-1 border border-neutral-300 bg-white px-3" onClick={() => props.onFile(null)}>
               <X size={15} />
@@ -84,5 +96,20 @@ export function IntakePanel(props: {
         {props.children}
       </div>
     </section>
+  );
+}
+
+function SubjectButton(props: { active: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      className={[
+        "h-10 border px-2 font-bold",
+        props.active ? "border-neutral-950 bg-neutral-950 text-white" : "border-neutral-300 bg-white text-neutral-800"
+      ].join(" ")}
+      onClick={props.onClick}
+      type="button"
+    >
+      {props.children}
+    </button>
   );
 }

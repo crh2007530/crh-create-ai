@@ -23,7 +23,7 @@ def classify_subject(question: str, requested: Subject) -> str:
         return "linear_algebra"
     if classification.domain == "circuit":
         return "circuit"
-    return "circuit"
+    return "generic"
 
 
 def parse_problem_document(question: str, subject: Subject) -> ProblemDocument:
@@ -46,6 +46,21 @@ def parse_problem_document(question: str, subject: Subject) -> ProblemDocument:
             originalQuestion=question,
             metadata={"parser": "error_fallback", "error": str(exc)},
         )
+
+
+def force_problem_document(document: ProblemDocument, subject: Subject) -> ProblemDocument:
+    if subject == Subject.auto:
+        return document
+
+    forced_domain = "linear_algebra" if subject == Subject.linear_algebra else "circuit"
+    if document.domain == forced_domain:
+        return document
+
+    document.domain = forced_domain
+    document.topic = "gaussian_elimination" if forced_domain == "linear_algebra" else "node_voltage"
+    document.difficulty = max(document.difficulty, 2)
+    document.metadata["forced_subject"] = subject.value
+    return document
 
 
 def solve_math(problem_document: ProblemDocument) -> MathResult | None:
@@ -112,11 +127,16 @@ async def solve_problem(
 
     effective_question = extracted_text or question
     problem_document = parse_problem_document(effective_question, subject)
+    problem_document = force_problem_document(problem_document, subject)
     if extracted_text:
         problem_document.metadata["vision_extracted_text"] = extracted_text
         problem_document.metadata["original_user_text"] = question
 
-    resolved_subject = "linear_algebra" if problem_document.domain == "linear_algebra" else "circuit"
+    resolved_subject = "linear_algebra" if problem_document.domain == "linear_algebra" else "circuit" if problem_document.domain == "circuit" else "linear_algebra"
+    if problem_document.domain == "generic":
+        problem_document.domain = resolved_subject
+        problem_document.topic = "gaussian_elimination"
+        problem_document.metadata["generic_default"] = "linear_algebra"
     topic = problem_document.topic if problem_document.topic != "generic" else (
         "gaussian_elimination" if resolved_subject == "linear_algebra" else "node_voltage"
     )

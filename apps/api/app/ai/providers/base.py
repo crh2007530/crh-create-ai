@@ -35,7 +35,12 @@ class ProviderSolveResult:
 class ProviderVisionRequest:
     image_bytes: bytes
     mime_type: str
-    prompt: str = "Extract the engineering problem text from this file. Return only the problem statement."
+    prompt: str = (
+        "Extract the engineering or math problem from this file. "
+        "If it is a matrix or linear algebra problem, preserve the matrix rows exactly and include words like matrix, determinant, inverse, rank, or row reduction when visible. "
+        "If it is a circuit problem, mention circuit components and requested quantities. "
+        "Return only the problem statement, not a solution."
+    )
     model: str | None = None
 
 
