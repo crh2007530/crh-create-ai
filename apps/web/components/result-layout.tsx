@@ -1,5 +1,6 @@
 import type { SolveResponse, SolutionStep } from "@/lib/types";
 import { StepList } from "./step-list";
+import { TeacherAsk } from "./teacher-ask";
 import { VisualizationPanel } from "./visualization-panel";
 
 export function ResultLayout(props: {
@@ -24,6 +25,7 @@ export function ResultLayout(props: {
         <AnswerCard response={props.response} />
         <ValidationCard response={props.response} />
         <ModelCard response={props.response} />
+        <TeacherAsk response={props.response} activeStepIndex={props.activeIndex} />
         <MobileStepList steps={solution.steps} />
       </section>
 
@@ -32,6 +34,9 @@ export function ResultLayout(props: {
           <QuestionCard response={props.response} />
           <div className="mt-3">
             <ModelCard response={props.response} compact />
+          </div>
+          <div className="mt-3">
+            <TeacherAsk response={props.response} activeStepIndex={props.activeIndex} compact />
           </div>
         </aside>
 

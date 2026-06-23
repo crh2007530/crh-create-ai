@@ -18,6 +18,14 @@ export type ProviderTestResult = {
   error?: string;
 };
 
+export type TeacherAskResult = {
+  answer: string;
+  provider: string;
+  model: string;
+  mode: "ai" | "local";
+  error?: string;
+};
+
 export type Visualization = {
   id: string;
   kind: "circuit_svg" | "matrix_svg" | "overlay_svg";
