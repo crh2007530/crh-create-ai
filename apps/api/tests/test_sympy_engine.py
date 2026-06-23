@@ -30,12 +30,17 @@ def test_parser_extracts_plain_text_matrix():
     assert doc.knowns[0].metadata["matrix"] == MATRIX
 
 
-def test_sympy_engine_calculates_determinant():
+def test_sympy_engine_calculates_determinant_with_determinant_steps():
     result = SymPyEngine().solve(_doc("determinant"))
 
     assert result.success is True
     assert result.output["determinant"] == -2
     assert result.steps[-1].result == -2
+    titles = [step.title for step in result.steps]
+    operations = [step.operation for step in result.steps]
+    assert "套用二阶行列式公式" in titles
+    assert "计算二阶行列式" in titles
+    assert all("R2 <-" not in str(operation) for operation in operations)
 
 
 def test_sympy_engine_calculates_inverse_matrix():
@@ -61,7 +66,7 @@ def test_sympy_engine_records_gaussian_elimination_steps():
     assert result.success is True
     assert result.output["echelon_form"] == [[1, 2], [0, -2]]
     operations = [step.operation for step in result.steps]
-    assert "R2 ← R2 - (3)R1" in operations
+    assert "R2 <- R2 - (3)R1" in operations
 
 
 def test_solve_response_includes_math_result_and_real_visual_answer():

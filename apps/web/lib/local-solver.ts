@@ -149,20 +149,98 @@ function circuitSvg(title: string, goal: string, conclusion: string, body: strin
 </svg>`;
 }
 
+function minorMatrix(matrix: number[][], removeRow: number, removeCol: number): number[][] {
+  return matrix
+    .filter((_, rowIndex) => rowIndex !== removeRow)
+    .map((row) => row.filter((_, colIndex) => colIndex !== removeCol));
+}
+
+function firstRowExpansionFormula(matrix: number[][]): { symbolic: string; substituted: string; value: string } {
+  if (matrix.length === 2 && matrix[0].length === 2) {
+    const [[a, b], [c, d]] = matrix;
+    return {
+      symbolic: "det(A) = a11a22 - a12a21",
+      substituted: `det(A) = ${formatNumber(a)}×${formatNumber(d)} - ${formatNumber(b)}×${formatNumber(c)}`,
+      value: `det(A) = ${formatNumber(determinant(matrix) ?? 0)}`
+    };
+  }
+
+  const terms = matrix[0].map((value, colIndex) => {
+    const sign = colIndex % 2 === 0 ? "+" : "-";
+    const minorDet = determinant(minorMatrix(matrix, 0, colIndex)) ?? 0;
+    return `${sign} ${formatNumber(value)}×(${formatNumber(minorDet)})`;
+  });
+  return {
+    symbolic: "det(A) = a11M11 - a12M12 + a13M13 ...",
+    substituted: `det(A) = ${terms.join(" ").replace(/^\+ /, "")}`,
+    value: `det(A) = ${formatNumber(determinant(matrix) ?? 0)}`
+  };
+}
+
+function solveDeterminantMatrix(matrix: number[][]): { answer: string; result: MatrixResult; steps: SolveResponse["solution"]["steps"] } {
+  const isSquare = matrix.length > 0 && matrix.every((row) => row.length === matrix.length);
+  const det = isSquare ? determinant(matrix) : undefined;
+  const result: MatrixResult = { matrix, determinant: det, rowSteps: [] };
+
+  if (!isSquare) {
+    const answer = "行列式只对方阵有定义；当前矩阵不是方阵。";
+    const steps = [
+      ["读入矩阵", "先看矩阵有几行几列。", `A =\n${matrixText(matrix)}`, matrix, "原矩阵 A"],
+      ["检查方阵条件", "只有 n×n 方阵才有 det(A)。", "rows(A) must equal cols(A)", matrix, "不是方阵"],
+      ["停止计算", "题目如果要求行列式，需要先确认矩阵输入是否完整。", answer, matrix, answer]
+    ] as const;
+    return {
+      answer,
+      result,
+      steps: steps.map(([title, explanation, formula, svgMatrix, note], index) => ({
+        id: `det-step-${index + 1}`,
+        index: index + 1,
+        title,
+        teacher_explanation: explanation,
+        formula,
+        visualization: visualization(`det-v${index + 1}`, "matrix_svg", matrixSvg(`Step ${index + 1} ${title}`, svgMatrix, note, index === 1 ? 0 : undefined))
+      }))
+    };
+  }
+
+  const expansion = firstRowExpansionFormula(matrix);
+  const steps = [
+    ["读入方阵", "先确认这是方阵，因为行列式只对方阵定义。", `A =\n${matrixText(matrix)}`, matrix, "原方阵 A"],
+    ["选择展开行", "选第一行做余子式展开；如果某一行零多，实际计算会优先选零多的行。", "沿第一行展开", matrix, "高亮第一行"],
+    ["写出展开公式", "行列式展开时符号按 +、-、+、- 交替。", expansion.symbolic, matrix, "符号模式：+ - + -"],
+    ["代入余子式", "每个元素都要乘去掉本行本列后的子行列式。", expansion.substituted, matrix, "逐项计算余子式"],
+    ["合并结果", "把各项按符号相加，得到题目真正要求的 det(A)。", expansion.value, matrix, expansion.value]
+  ] as const;
+
+  return {
+    answer: expansion.value,
+    result,
+    steps: steps.map(([title, explanation, formula, svgMatrix, note], index) => ({
+      id: `det-step-${index + 1}`,
+      index: index + 1,
+      title,
+      teacher_explanation: explanation,
+      formula,
+      visualization: visualization(`det-v${index + 1}`, "matrix_svg", matrixSvg(`Step ${index + 1} ${title}`, svgMatrix, note, index === 1 ? 0 : undefined))
+    }))
+  };
+}
+
 function solveMatrix(question: string, topic: Topic): { answer: string; result: MatrixResult; steps: SolveResponse["solution"]["steps"] } {
   const matrix = parseMatrix(question) ?? [
     [1, 2],
     [3, 4]
   ];
+  if (topic === "determinant") {
+    return solveDeterminantMatrix(matrix);
+  }
   const det = determinant(matrix);
   const inverse = inverse2x2(matrix);
   const reduced = gaussian(matrix);
   const result: MatrixResult = { matrix, determinant: det, inverse, rank: reduced.rank, echelon: reduced.echelon, rowSteps: reduced.rowSteps };
   const finalMatrix = topic === "inverse_matrix" && inverse ? inverse : topic === "gaussian_elimination" ? reduced.echelon : matrix;
   const answer =
-    topic === "determinant"
-      ? `det(A) = ${formatNumber(det ?? 0)}`
-      : topic === "matrix_rank"
+    topic === "matrix_rank"
         ? `rank(A) = ${reduced.rank}`
         : topic === "inverse_matrix"
           ? inverse
@@ -171,7 +249,7 @@ function solveMatrix(question: string, topic: Topic): { answer: string; result: 
           : `阶梯形矩阵：\n${matrixText(reduced.echelon)}`;
   const steps = [
     ["读入矩阵", "先把题目中的矩阵写成标准形式。", `A =\n${matrixText(matrix)}`, matrix, "原矩阵 A"],
-    ["选择方法", "先判断题目目标，再选择行列式、求逆或行变换路线。", topic === "determinant" ? "det(A)" : reduced.rowSteps[0] ?? "寻找主元", matrix, "高亮主元位置"],
+    ["选择方法", "先判断题目目标，再选择求逆、求秩或行变换路线。", reduced.rowSteps[0] ?? "寻找主元", matrix, "高亮主元位置"],
     ["执行计算", "每次行变换只改变一行，便于检查。", reduced.rowSteps.join("\n") || "无需额外行变换", reduced.echelon, "行变换结果"],
     ["得到中间结果", "阶梯形矩阵可以用于读出秩或继续求解。", `E =\n${matrixText(reduced.echelon)}`, reduced.echelon, "阶梯形结果"],
     ["写出最终答案", "最后回到题目问的量，不只看过程。", answer, finalMatrix, answer.replace(/\n/g, " ")]

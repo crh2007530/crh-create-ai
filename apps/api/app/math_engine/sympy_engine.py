@@ -5,7 +5,7 @@ import sympy as sp
 
 from app.math_engine.base import MathEngine
 from app.schemas.math_result import MathResult, MathStep
-from app.schemas.problem_document import ProblemDocument, ProblemItem
+from app.schemas.problem_document import ProblemDocument
 
 
 SUPPORTED_TOPICS = {"determinant", "inverse_matrix", "matrix_rank", "gaussian_elimination"}
@@ -69,8 +69,9 @@ def _solve_determinant(problem_document: ProblemDocument, matrix: sp.Matrix) -> 
         input={"matrix": matrix_data},
         output={"determinant": _scalar_to_python(det)},
         steps=[
-            MathStep(title="构造矩阵", data={"matrix": matrix_data}, result=matrix_data),
-            MathStep(title="计算行列式", operation="det(A)", data={"matrix": matrix_data}, result=_scalar_to_python(det)),
+            MathStep(title="构造方阵", operation="A", data={"matrix": matrix_data}, result=matrix_data),
+            *_determinant_steps(matrix),
+            MathStep(title="合并得到行列式", operation="det(A)", data={"matrix": matrix_data}, result=_scalar_to_python(det)),
         ],
         metadata={"engine": "sympy"},
     )
@@ -80,7 +81,7 @@ def _solve_inverse(problem_document: ProblemDocument, matrix: sp.Matrix) -> Math
     matrix_data = _matrix_to_python(matrix)
     det = matrix.det()
     steps = [
-        MathStep(title="构造矩阵", data={"matrix": matrix_data}, result=matrix_data),
+        MathStep(title="构造矩阵", operation="A", data={"matrix": matrix_data}, result=matrix_data),
         MathStep(title="计算行列式", operation="det(A)", data={"matrix": matrix_data}, result=_scalar_to_python(det)),
     ]
     if det == 0:
@@ -121,7 +122,7 @@ def _solve_rank(problem_document: ProblemDocument, matrix: sp.Matrix) -> MathRes
         input={"matrix": matrix_data},
         output={"rank": int(rank), "rref": _matrix_to_python(rref_matrix), "pivots": list(pivots)},
         steps=[
-            MathStep(title="构造矩阵", data={"matrix": matrix_data}, result=matrix_data),
+            MathStep(title="构造矩阵", operation="A", data={"matrix": matrix_data}, result=matrix_data),
             MathStep(title="化为行最简形", operation="rref(A)", data={"matrix": matrix_data}, result=_matrix_to_python(rref_matrix), metadata={"pivots": list(pivots)}),
             MathStep(title="统计非零行", operation="rank(A)", data={"rref": _matrix_to_python(rref_matrix)}, result=int(rank)),
         ],
@@ -138,12 +139,95 @@ def _solve_gaussian(problem_document: ProblemDocument, matrix: sp.Matrix) -> Mat
         input={"matrix": matrix_data},
         output={"echelon_form": echelon},
         steps=[
-            MathStep(title="构造矩阵", data={"matrix": matrix_data}, result=matrix_data),
+            MathStep(title="构造矩阵", operation="A", data={"matrix": matrix_data}, result=matrix_data),
             *row_steps,
             MathStep(title="得到阶梯形矩阵", operation="echelon_form(A)", data={"matrix": matrix_data}, result=echelon),
         ],
         metadata={"engine": "sympy"},
     )
+
+
+def _determinant_steps(matrix: sp.Matrix) -> list[MathStep]:
+    matrix_data = _matrix_to_python(matrix)
+    if matrix.rows != matrix.cols:
+        return [
+            MathStep(
+                title="检查方阵条件",
+                operation="rows(A)=cols(A)",
+                data={"matrix": matrix_data},
+                result=False,
+            )
+        ]
+
+    if matrix.rows == 1:
+        return [
+            MathStep(
+                title="一阶行列式",
+                operation="det([a])=a",
+                data={"matrix": matrix_data},
+                result=_scalar_to_python(matrix[0, 0]),
+            )
+        ]
+
+    if matrix.rows == 2:
+        a, b, c, d = matrix[0, 0], matrix[0, 1], matrix[1, 0], matrix[1, 1]
+        return [
+            MathStep(
+                title="套用二阶行列式公式",
+                operation="det(A)=a11*a22-a12*a21",
+                data={"matrix": matrix_data},
+                result=f"{_scalar_to_string(a)}*{_scalar_to_string(d)} - {_scalar_to_string(b)}*{_scalar_to_string(c)}",
+                metadata={"target_row": 0},
+            ),
+            MathStep(
+                title="计算二阶行列式",
+                operation="ad-bc",
+                data={"matrix": matrix_data},
+                result=_scalar_to_python(matrix.det()),
+                metadata={"target_row": 0},
+            ),
+        ]
+
+    terms = []
+    for col in range(matrix.cols):
+        sign = 1 if col % 2 == 0 else -1
+        value = matrix[0, col]
+        minor = matrix.minor_submatrix(0, col)
+        minor_det = minor.det()
+        terms.append(
+            {
+                "column": col,
+                "sign": sign,
+                "coefficient": _scalar_to_python(value),
+                "minor": _matrix_to_python(minor),
+                "minor_determinant": _scalar_to_python(minor_det),
+                "term_value": _scalar_to_python(sign * value * minor_det),
+            }
+        )
+
+    return [
+        MathStep(
+            title="选择第一行展开",
+            operation="cofactor expansion along row 1",
+            data={"matrix": matrix_data},
+            result="沿第一行按 + - + - 的符号展开",
+            metadata={"target_row": 0},
+        ),
+        MathStep(
+            title="计算第一行余子式",
+            operation="M1j=det(minor(A,1,j))",
+            data={"matrix": matrix_data, "terms": terms},
+            result=terms,
+            metadata={"target_row": 0},
+        ),
+        MathStep(
+            title="代入余子式展开式",
+            operation="det(A)=sum((-1)^(1+j)*a1j*M1j)",
+            data={"terms": terms},
+            result=" + ".join(str(term["term_value"]) for term in terms),
+            metadata={"target_row": 0},
+        ),
+    ]
 
 
 def _gaussian_steps(matrix: sp.Matrix) -> tuple[list[list[Any]], list[MathStep]]:
@@ -159,7 +243,7 @@ def _gaussian_steps(matrix: sp.Matrix) -> tuple[list[list[Any]], list[MathStep]]
             continue
         if pivot != pivot_row:
             rows[pivot_row], rows[pivot] = rows[pivot], rows[pivot_row]
-            steps.append(_row_step(f"R{pivot_row + 1} ↔ R{pivot + 1}", rows, pivot_row, pivot))
+            steps.append(_row_step(f"R{pivot_row + 1} <-> R{pivot + 1}", rows, pivot_row, pivot))
 
         pivot_value = rows[pivot_row][col]
         for r in range(pivot_row + 1, row_count):
@@ -167,7 +251,7 @@ def _gaussian_steps(matrix: sp.Matrix) -> tuple[list[list[Any]], list[MathStep]]
                 continue
             factor = sp.simplify(rows[r][col] / pivot_value)
             rows[r] = [sp.simplify(rows[r][c] - factor * rows[pivot_row][c]) for c in range(col_count)]
-            steps.append(_row_step(f"R{r + 1} ← R{r + 1} - ({_scalar_to_string(factor)})R{pivot_row + 1}", rows, r, pivot_row, {"factor": _scalar_to_python(factor)}))
+            steps.append(_row_step(f"R{r + 1} <- R{r + 1} - ({_scalar_to_string(factor)})R{pivot_row + 1}", rows, r, pivot_row, {"factor": _scalar_to_python(factor)}))
         pivot_row += 1
         if pivot_row == row_count:
             break
