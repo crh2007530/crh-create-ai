@@ -53,5 +53,8 @@ export type Solution = {
 export type SolveResponse = {
   solution: Solution;
   model_route: Record<string, string>;
+  provider?: string | null;
+  model?: string | null;
+  model_status?: string;
   warnings: string[];
 };

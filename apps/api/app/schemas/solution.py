@@ -79,6 +79,9 @@ class Solution(BaseModel):
 class SolveResponse(BaseModel):
     solution: Solution
     model_route: dict[str, str]
+    provider: str | None = None
+    model: str | None = None
+    model_status: str = "template"
     warnings: list[str] = Field(default_factory=list)
 
 

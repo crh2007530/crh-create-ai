@@ -3,183 +3,149 @@ from html import escape
 from app.schemas.visual_step import VisualStep
 
 
-COMPONENT_HIGHLIGHTS = {
-    "Vs": '<rect x="24" y="102" width="112" height="136" fill="#fff7cc" stroke="#111" stroke-width="1.5"/>',
-    "R1": '<rect x="184" y="72" width="118" height="76" fill="#fff7cc" stroke="#111" stroke-width="1.5"/>',
-    "R2": '<rect x="336" y="128" width="70" height="142" fill="#fff7cc" stroke="#111" stroke-width="1.5"/>',
-    "R3": '<rect x="506" y="128" width="70" height="142" fill="#fff7cc" stroke="#111" stroke-width="1.5"/>',
-}
-
-NODE_HIGHLIGHTS = {
-    "Node A": '<circle cx="370" cy="110" r="24" fill="#fff7cc" stroke="#111" stroke-width="1.8"/>',
-    "Node B": '<circle cx="540" cy="110" r="24" fill="#fff7cc" stroke="#111" stroke-width="1.8"/>',
-    "Ground": '<circle cx="370" cy="300" r="24" fill="#fff7cc" stroke="#111" stroke-width="1.8"/>',
-}
-
-OVERLAY_TARGETS = {
-    "Node A": (342, 72),
-    "Node B": (511, 72),
-    "Ground": (318, 354),
-    "R1": (220, 66),
-    "R2": (394, 188),
-    "R3": (563, 188),
-    "I1": (228, 40),
-    "I2": (416, 192),
-    "I3": (586, 192),
-}
-
-
-def _visible(flag: bool) -> str:
-    return "1" if flag else "0"
-
-
-def _highlight_svg(step: VisualStep) -> str:
-    parts: list[str] = []
-    for highlight in step.highlights:
-        if highlight.type == "component":
-            parts.append(COMPONENT_HIGHLIGHTS.get(highlight.target, ""))
-        if highlight.type == "node":
-            parts.append(NODE_HIGHLIGHTS.get(highlight.target, ""))
-    return "".join(parts)
-
-
-def _annotation_svg(step: VisualStep) -> str:
-    if not step.annotations:
-        return ""
-    lines = []
-    y = 446
-    for annotation in step.annotations[:3]:
-        label = escape(annotation.label)
-        lines.append(f'<text x="26" y="{y}" class="note">- {label}</text>')
-        y += 18
-    return "".join(lines)
-
-
-def _overlay_svg(step: VisualStep) -> str:
-    parts = []
-    for overlay in step.overlays:
-        x = overlay.x
-        y = overlay.y
-        if (x is None or y is None) and overlay.target in OVERLAY_TARGETS:
-            x, y = OVERLAY_TARGETS[overlay.target]
-        if x is None or y is None:
-            continue
-        text = escape(overlay.text or overlay.target or "")
-        parts.append(
-            f'<g><rect x="{x - 6}" y="{y - 18}" width="{max(46, len(text) * 8)}" height="22" '
-            f'fill="#fff" stroke="#111"/><text x="{x}" y="{y - 3}" class="small">{text}</text></g>'
-        )
-    return "".join(parts)
-
-
 def render_circuit_step_svg(step: VisualStep) -> str:
-    mode = str(step.metadata.get("render_mode", "base"))
-    show_nodes = mode in {"nodes", "equation", "result"}
-    show_current = mode in {"current", "equation", "result"}
-    show_equation = mode == "equation"
-    show_result = mode == "result"
+    mode = str(step.metadata.get("render_mode", "identify"))
     title = escape(step.title)
+    goal = escape(str(step.metadata.get("step_goal") or _goal_for_mode(mode)))
+    conclusion = escape(str(step.result or step.metadata.get("step_conclusion") or _conclusion_for_mode(mode)))
     formula = escape(step.formula or "")
+    annotation = escape(step.annotations[0].label) if step.annotations else ""
+    body = _body_for_mode(mode, formula)
     explanation = escape(step.explanation)
-    highlights = _highlight_svg(step)
-    annotations = _annotation_svg(step)
-    overlays = _overlay_svg(step)
 
     return f"""
-<svg viewBox="0 0 620 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="circuit teaching step">
-  <rect width="620" height="500" fill="#fff"/>
-  <defs>
-    <marker id="arrowHead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-      <path d="M0,0 L8,4 L0,8 Z" fill="#111"/>
-    </marker>
-    <style>
-      .wire,.component,.ground,.arrow {{ stroke:#111; stroke-width:2.4; fill:none; stroke-linecap:square; stroke-linejoin:miter; }}
-      .text {{ fill:#111; font:700 14px Arial,sans-serif; }}
-      .small {{ fill:#111; font:600 12px Arial,sans-serif; }}
-      .note {{ fill:#111; font:600 13px Arial,sans-serif; }}
-      .title {{ fill:#111; font:800 18px Arial,sans-serif; }}
-      .node {{ fill:#111; }}
-      .nodeRing {{ fill:#fff; stroke:#111; stroke-width:2.2; opacity:{_visible(show_nodes)}; }}
-      .current {{ opacity:{_visible(show_current)}; }}
-      .equation {{ opacity:{_visible(show_equation)}; }}
-      .result {{ opacity:{_visible(show_result)}; }}
-      .kcl {{ stroke-width:{'4' if show_equation else '2.4'}; }}
-    </style>
-  </defs>
+<svg viewBox="0 0 390 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{title}">
+  <rect width="390" height="560" fill="#fff"/>
+  <style>
+    .h1 {{ font:800 20px Arial,sans-serif; fill:#111; }}
+    .label {{ font:700 14px Arial,sans-serif; fill:#111; }}
+    .text {{ font:600 13px Arial,sans-serif; fill:#333; }}
+    .tiny {{ font:600 11px Arial,sans-serif; fill:#555; }}
+    .wire {{ stroke:#111; stroke-width:3; fill:none; stroke-linecap:round; stroke-linejoin:round; }}
+    .muted {{ stroke:#bcbcbc; fill:none; stroke-width:2.2; }}
+    .focus {{ stroke:#111; stroke-width:4; fill:none; }}
+    .noteBox {{ fill:#f8f8f8; stroke:#111; stroke-width:1.6; }}
+  </style>
+  <rect x="16" y="16" width="358" height="58" fill="#f7f7f7" stroke="#111"/>
+  <text x="28" y="40" class="h1">{title}</text>
+  <text x="28" y="62" class="text">本步目标：{goal}</text>
 
-  <rect x="14" y="12" width="592" height="36" fill="#f7f7f7" stroke="#111"/>
-  <text x="26" y="36" class="title">{title}</text>
-
-  <g transform="translate(0 54)">
-    {highlights}
-    <path class="wire" d="M80 110 H190"/>
-    <path class="wire kcl" d="M260 110 H370"/>
-    <path class="wire kcl" d="M440 110 H540"/>
-    <path class="wire" d="M80 300 H540"/>
-    <path class="wire kcl" d="M370 110 V300"/>
-    <path class="wire kcl" d="M540 110 V300"/>
-    <path class="wire" d="M80 110 V142"/>
-    <path class="wire" d="M80 238 V300"/>
-
-    <circle cx="80" cy="190" r="48" fill="#fff" stroke="#111" stroke-width="2.4"/>
-    <text class="text" x="60" y="194">Vs</text>
-    <text class="small" x="50" y="258">18V</text>
-    <text class="text current" x="64" y="139">+</text>
-    <text class="text current" x="67" y="254">-</text>
-
-    <path class="component" d="M190 110 h14 l8 -16 l16 32 l16 -32 l16 32 l16 -32 l8 16 h14"/>
-    <text class="small" x="220" y="78">R1 2Ω</text>
-    <path class="component" d="M370 142 v12 l-16 8 l32 16 l-32 16 l32 16 l-32 16 l16 8 v12"/>
-    <text class="small" x="394" y="198">R2 4Ω</text>
-    <path class="component" d="M540 142 v12 l-16 8 l32 16 l-32 16 l32 16 l-32 16 l16 8 v12"/>
-    <text class="small" x="563" y="198">R3 8Ω</text>
-
-    <circle class="nodeRing" cx="370" cy="110" r="18"/>
-    <circle class="nodeRing" cx="540" cy="110" r="18"/>
-    <circle class="nodeRing" cx="370" cy="300" r="18"/>
-    <circle class="node" cx="370" cy="110" r="4"/>
-    <circle class="node" cx="540" cy="110" r="4"/>
-    <circle class="node" cx="370" cy="300" r="4"/>
-    <text class="text" x="342" y="82">Node A</text>
-    <text class="text" x="511" y="82">Node B</text>
-    <path class="ground" d="M338 300 h64 M350 314 h40 M362 328 h16"/>
-    <text class="small" x="318" y="354">Ground</text>
-
-    <g class="current">
-      <path class="arrow" marker-end="url(#arrowHead)" d="M170 62 H300"/>
-      <text class="small" x="228" y="50">I1</text>
-      <path class="arrow" marker-end="url(#arrowHead)" d="M405 148 V248"/>
-      <text class="small" x="416" y="202">I2</text>
-      <path class="arrow" marker-end="url(#arrowHead)" d="M575 148 V248"/>
-      <text class="small" x="586" y="202">I3</text>
-    </g>
-
-    <g class="equation">
-      <rect x="88" y="22" width="420" height="34" fill="#fff" stroke="#111"/>
-      <text class="small" x="101" y="44">(18 - VA)/R1 = VA/R2 + VB/R3</text>
-    </g>
-
-    <g class="result">
-      <rect x="88" y="22" width="446" height="58" fill="#fff" stroke="#111"/>
-      <text class="small" x="101" y="44">VA = 12V, VB = 12V, I1 = 3A, I2 = 3A</text>
-      <text class="small" x="101" y="64">Pmax = 18W, Q = 0var, S = 36VA</text>
-    </g>
-    {overlays}
+  <g transform="translate(0 92)">
+    {body}
   </g>
 
-  <rect x="14" y="424" width="592" height="62" fill="#fff" stroke="#111"/>
-  <text x="26" y="444" class="note">公式：{formula}</text>
-  <text x="26" y="466" class="note">说明：{explanation}</text>
-  {annotations}
+  <rect x="16" y="432" width="358" height="50" class="noteBox"/>
+  <text x="28" y="454" class="label">本步结论</text>
+  <text x="28" y="474" class="text">{conclusion}</text>
+
+  <rect x="16" y="494" width="358" height="46" fill="#fff" stroke="#d0d0d0"/>
+  <text x="28" y="514" class="tiny">公式：{formula}</text>
+  <text x="28" y="532" class="tiny">老师解释：{explanation}</text>
+  <text x="28" y="548" class="tiny">{annotation}</text>
 </svg>
 """.strip()
+
+
+def _goal_for_mode(mode: str) -> str:
+    return {
+        "identify": "找出题目要求的量",
+        "nodes": "确定分析对象 Node A",
+        "current": "建立电流参考方向",
+        "equation": "围绕 Node A 写 KCL",
+        "result": "把结果标回图中",
+    }.get(mode, "看懂当前分析步骤")
+
+
+def _conclusion_for_mode(mode: str) -> str:
+    return {
+        "identify": "目标量已锁定，下一步选分析对象。",
+        "nodes": "Node A 是主要未知量，下一步标参考方向。",
+        "current": "参考方向建立完成，下一步列 KCL。",
+        "equation": "KCL 方程已建立，下一步求解。",
+        "result": "结果已回到图中，可以检查单位和方向。",
+    }.get(mode, "本步完成。")
+
+
+def _body_for_mode(mode: str, formula: str) -> str:
+    if mode == "nodes":
+        return _nodes_body()
+    if mode == "current":
+        return _current_body()
+    if mode == "equation":
+        return _equation_body(formula)
+    if mode == "result":
+        return _result_body()
+    return _identify_body()
+
+
+def _identify_body() -> str:
+    return """
+  <rect x="44" y="42" width="302" height="230" fill="#fff" stroke="#d6d6d6"/>
+  <path class="muted" d="M80 92 H185 M245 92 H310 M80 238 H310 M80 92 V238 M310 92 V238"/>
+  <path class="muted" d="M185 92 h16 l8 -14 l16 28 l16 -28 l16 28 l8 -14 h18"/>
+  <circle cx="196" cy="165" r="56" fill="#fff7cc" stroke="#111" stroke-width="3"/>
+  <text x="158" y="158" class="label">题目要求</text>
+  <text x="166" y="184" class="h1">求 VA / I</text>
+  <path class="wire" d="M196 222 v42"/>
+  <text x="118" y="304" class="text">先看题目问什么，不急着算。</text>
+"""
+
+
+def _nodes_body() -> str:
+    return """
+  <path class="muted" d="M76 140 H144 M246 140 H314 M76 260 H314 M76 140 V260 M314 140 V260"/>
+  <circle cx="195" cy="140" r="78" fill="#fff7cc" stroke="#111" stroke-width="4"/>
+  <circle cx="195" cy="140" r="7" fill="#111"/>
+  <text x="151" y="132" class="h1">Node A</text>
+  <text x="137" y="166" class="text">未知节点电压 VA</text>
+  <path class="wire" d="M195 218 V286"/>
+  <path class="wire" d="M151 286 H239 M166 302 H224 M181 318 H209"/>
+  <text x="142" y="348" class="text">其它部分先灰化，只盯住 Node A。</text>
+"""
+
+
+def _current_body() -> str:
+    return """
+  <circle cx="195" cy="152" r="62" fill="#fff" stroke="#111" stroke-width="3"/>
+  <text x="167" y="158" class="h1">Node A</text>
+  <path class="wire" d="M70 152 H132 M258 152 H320 M195 214 V300"/>
+  <path d="M72 104 H142" stroke="#111" stroke-width="5" marker-end="url(#arrow)"/>
+  <text x="91" y="88" class="h1">I1</text>
+  <path d="M292 104 V176" stroke="#111" stroke-width="5" marker-end="url(#arrow)"/>
+  <text x="306" y="142" class="h1">I2</text>
+  <text x="70" y="340" class="text">方向是参考方向，算出负值就说明实际相反。</text>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#111"/></marker></defs>
+"""
+
+
+def _equation_body(formula: str) -> str:
+    equation = escape(formula or "I1 + I2 = 0")
+    return f"""
+  <circle cx="195" cy="118" r="54" fill="#fff7cc" stroke="#111" stroke-width="4"/>
+  <text x="168" y="124" class="h1">Node A</text>
+  <path class="wire" d="M195 172 V220"/>
+  <rect x="40" y="226" width="310" height="88" fill="#fff" stroke="#111" stroke-width="2"/>
+  <text x="68" y="260" class="h1">KCL</text>
+  <text x="68" y="292" class="label">{equation}</text>
+  <text x="54" y="350" class="text">这一步只看 Node A，不需要再画完整电路。</text>
+"""
+
+
+def _result_body() -> str:
+    return """
+  <rect x="44" y="58" width="302" height="236" fill="#fff" stroke="#111" stroke-width="2"/>
+  <text x="78" y="112" class="label">最终结果</text>
+  <text x="78" y="162" class="h1">VA = 6V</text>
+  <text x="78" y="210" class="h1">I = 2A</text>
+  <text x="78" y="258" class="text">把答案放回图里检查方向和单位。</text>
+"""
 
 
 def render_circuit_svg(mode: str) -> str:
     step = VisualStep(
         id="legacy_circuit_step",
-        title="电路步骤图",
-        explanation="教材风格电路图。",
+        title="电路教学步骤图",
+        explanation="每一步只讲一个知识点。",
         formula="",
         svgType="circuit",
         metadata={"render_mode": mode},
@@ -194,9 +160,6 @@ def render_overlay_svg() -> str:
         explanation="标注直接叠加在原题图上。",
         formula="",
         svgType="circuit",
-        overlays=[
-            {"target": "Node A", "text": "Node A"},
-            {"target": "Node B", "text": "Node B"},
-        ],
+        metadata={"render_mode": "nodes"},
     )
     return render_circuit_step_svg(step)

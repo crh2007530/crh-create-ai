@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
     deepseek_base_url: str = "https://api.deepseek.com"
 
-    openai_model: str = "gpt-5-mini"
-    gemini_model: str = "gemini-flash"
-    deepseek_model: str = "deepseek-reasoner"
+    openai_model: str = "gpt-5.5-mini"
+    gemini_model: str = "gemini-2.5-flash"
+    deepseek_model: str = "deepseek-v3"
 
     custom_provider_name: str = "custom"
     custom_api_key: str | None = None

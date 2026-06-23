@@ -141,6 +141,9 @@ async def solve_problem(
             if validation_result.score > 0
             else "Verification Failed"
         )
+    visual_solution.metadata["model_provider"] = route["reason_provider"]
+    visual_solution.metadata["model"] = route["reason_model"]
+    visual_solution.metadata["model_status"] = "engine_template"
 
     reason_provider = route["reason_provider"]
     if reason_provider != "none":
@@ -159,8 +162,12 @@ async def solve_problem(
         )
         if provider_visual_solution.steps:
             visual_solution = provider_visual_solution
+            visual_solution.metadata["model_provider"] = reason_provider
+            visual_solution.metadata["model"] = route["reason_model"]
+            visual_solution.metadata["model_status"] = "real_ai"
         else:
             visual_solution.metadata["provider_visual_solution"] = provider_visual_solution.model_dump()
+            visual_solution.metadata["model_status"] = "provider_fallback"
 
     confirmation_required = resolved_subject == "circuit"
     summary = (

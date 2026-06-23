@@ -65,4 +65,12 @@ async def solve(
     )
     if file and mime_type and not mime_type.startswith("image/"):
         warnings.append("Beta-1 暂时只支持图片识别，PDF 会在后续云端解析阶段接入。")
-    return SolveResponse(solution=solution, model_route=route, warnings=warnings)
+    model_status = str(solution.visual_solution.metadata.get("model_status", "template")) if solution.visual_solution else "template"
+    return SolveResponse(
+        solution=solution,
+        model_route=route,
+        provider=route.get("reason_provider"),
+        model=route.get("reason_model"),
+        model_status=model_status,
+        warnings=warnings,
+    )

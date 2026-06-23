@@ -94,7 +94,7 @@ class CustomProvider(AIProvider):
                 id=model,
                 label=model,
                 supports_text=True,
-                supports_vision=bool(self.config.metadata.get("supports_vision", False)),
+                supports_vision=True,
                 metadata={"base_url": self.config.base_url, "compatible": "openai"},
             )
         ]
