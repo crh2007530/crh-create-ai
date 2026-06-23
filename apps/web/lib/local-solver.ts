@@ -37,6 +37,10 @@ function parseMatrix(question: string): number[][] | null {
   return null;
 }
 
+export function extractMatrix(question: string): number[][] | null {
+  return parseMatrix(question);
+}
+
 function determinant(matrix: number[][]): number | undefined {
   if (matrix.length !== matrix[0]?.length) return undefined;
   if (matrix.length === 1) return matrix[0][0];
