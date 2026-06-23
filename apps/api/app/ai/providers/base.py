@@ -35,7 +35,7 @@ class ProviderSolveResult:
 class ProviderVisionRequest:
     image_bytes: bytes
     mime_type: str
-    prompt: str = "Extract the engineering problem text from this image. Return only the problem statement."
+    prompt: str = "Extract the engineering problem text from this file. Return only the problem statement."
     model: str | None = None
 
 

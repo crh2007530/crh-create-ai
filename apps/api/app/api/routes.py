@@ -1,8 +1,7 @@
-from pydantic import BaseModel
 from fastapi import APIRouter, Depends, File, Form, UploadFile
+from pydantic import BaseModel
 
-from app.ai.provider_registry import create_provider
-from app.ai.provider_registry import build_provider_registry
+from app.ai.provider_registry import build_provider_registry, create_provider
 from app.ai.providers.base import ProviderConfig, ProviderSolveRequest
 from app.core.config import Settings, get_settings
 from app.schemas.solution import ModelPreference, ModelProfile, Provider, SolveResponse, Subject
@@ -135,8 +134,8 @@ async def solve(
         file_bytes=file_bytes,
         mime_type=mime_type,
     )
-    if file and mime_type and not mime_type.startswith("image/"):
-        warnings.append("Beta-1 暂时只支持图片识别，PDF 会在后续云端解析阶段接入。")
+    if file and mime_type and not (mime_type.startswith("image/") or mime_type == "application/pdf"):
+        warnings.append("当前只支持 jpg、png、webp 图片和 PDF 文件。")
     model_status = str(solution.visual_solution.metadata.get("model_status", "template")) if solution.visual_solution else "template"
     return SolveResponse(
         solution=solution,

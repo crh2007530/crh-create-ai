@@ -170,6 +170,7 @@ async def solve_problem(
             visual_solution.metadata["model_status"] = "provider_fallback"
 
     confirmation_required = resolved_subject == "circuit"
+    input_mode = "pdf" if mime_type == "application/pdf" else "image" if has_file else "text"
     summary = (
         "线性代数题目已结构化，并完成计算、验证与教学步骤生成。"
         if resolved_subject == "linear_algebra"
@@ -178,7 +179,7 @@ async def solve_problem(
 
     problem = Problem(
         id=f"problem_{uuid4().hex}",
-        input_mode="image" if has_file else "text",
+        input_mode=input_mode,
         subject=resolved_subject,
         topic=topic,
         original_text=effective_question or "上传题目图片",

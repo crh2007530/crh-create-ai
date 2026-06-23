@@ -55,14 +55,14 @@ class GeminiProvider(AIProvider):
             )
 
         model = request.model or self.config.model or "gemini-2.5-flash"
-        image_data = base64.b64encode(request.image_bytes).decode("ascii")
+        file_data = base64.b64encode(request.image_bytes).decode("ascii")
         body: dict[str, Any] = {
             "contents": [
                 {
                     "role": "user",
                     "parts": [
                         {"text": request.prompt},
-                        {"inline_data": {"mime_type": request.mime_type, "data": image_data}},
+                        {"inline_data": {"mime_type": request.mime_type, "data": file_data}},
                     ],
                 }
             ],

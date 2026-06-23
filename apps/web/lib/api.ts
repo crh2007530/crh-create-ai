@@ -72,12 +72,12 @@ async function solveWithBrowserByok(
   const warnings: string[] = [];
   if (input.file && apiConfig?.apiKey) {
     const extracted = await extractProblemTextInBrowser(apiConfig, input.file).catch((error) => {
-      warnings.push(`浏览器直连 Vision 失败：${error instanceof Error ? error.message : String(error)}`);
+      warnings.push(`浏览器直连识题失败：${error instanceof Error ? error.message : String(error)}`);
       return "";
     });
     if (extracted) effectiveQuestion = extracted;
   } else if (input.file) {
-    warnings.push("已选择图片；请在高级设置中保存自己的 API Key 后启用真实 Vision 识题。");
+    warnings.push("已选择文件；请在高级设置中保存自己的 API Key 后启用真实识题。");
   }
 
   const result = solveLocally({ ...input, question: effectiveQuestion });
@@ -110,10 +110,12 @@ async function testProviderInBrowser(config: ApiConfig): Promise<ProviderTestRes
 }
 
 async function extractProblemTextInBrowser(config: ApiConfig, file: File): Promise<string> {
-  if (config.provider === "deepseek") throw new Error("DeepSeek does not support direct image input");
-  const prompt = "Extract the engineering or math problem text from this image. Return only the problem statement.";
-  if (config.provider === "gemini") return callGeminiVision(config, prompt, file);
-  return callOpenAICompatibleVision(config, prompt, file);
+  if (config.provider === "deepseek") {
+    throw new Error("DeepSeek 不支持直接读取图片或 PDF，请换 OpenAI、Gemini 或支持文件的 Custom API");
+  }
+  const prompt = "Extract the engineering or math problem text from this file. Return only the problem statement.";
+  if (config.provider === "gemini") return callGeminiFileExtraction(config, prompt, file);
+  return callOpenAICompatibleFileExtraction(config, prompt, file);
 }
 
 async function callOpenAICompatibleText(config: ApiConfig, prompt: string) {
@@ -127,15 +129,19 @@ async function callOpenAICompatibleText(config: ApiConfig, prompt: string) {
   return response.json();
 }
 
-async function callOpenAICompatibleVision(config: ApiConfig, prompt: string, file: File): Promise<string> {
+async function callOpenAICompatibleFileExtraction(config: ApiConfig, prompt: string, file: File): Promise<string> {
   const dataUrl = await fileToDataUrl(file);
   const baseUrl = config.baseUrl.replace(/\/$/, "");
+  const filePart =
+    file.type === "application/pdf"
+      ? { type: "file", file: { filename: file.name || "problem.pdf", file_data: dataUrl } }
+      : { type: "image_url", image_url: { url: dataUrl } };
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.apiKey}` },
     body: JSON.stringify({
       model: config.model,
-      messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: dataUrl } }] }],
+      messages: [{ role: "user", content: [{ type: "text", text: prompt }, filePart] }],
       max_tokens: 900,
       temperature: 0.1
     })
@@ -156,7 +162,7 @@ async function callGeminiText(config: ApiConfig, prompt: string) {
   return response.json();
 }
 
-async function callGeminiVision(config: ApiConfig, prompt: string, file: File): Promise<string> {
+async function callGeminiFileExtraction(config: ApiConfig, prompt: string, file: File): Promise<string> {
   const base64 = await fileToBase64(file);
   const baseUrl = config.baseUrl.replace(/\/$/, "");
   const response = await fetch(`${baseUrl}/models/${config.model}:generateContent?key=${encodeURIComponent(config.apiKey)}`, {

@@ -56,7 +56,12 @@ class CustomProvider(AIProvider):
         if not model:
             return ProviderVisionResult(text="", error="CUSTOM_MODEL is not set", metadata={"mock": True})
 
-        image_data = base64.b64encode(request.image_bytes).decode("ascii")
+        file_data = base64.b64encode(request.image_bytes).decode("ascii")
+        file_part = (
+            {"type": "file", "file": {"filename": "problem.pdf", "file_data": f"data:{request.mime_type};base64,{file_data}"}}
+            if request.mime_type == "application/pdf"
+            else {"type": "image_url", "image_url": {"url": f"data:{request.mime_type};base64,{file_data}"}}
+        )
         body = {
             "model": model,
             "messages": [
@@ -64,7 +69,7 @@ class CustomProvider(AIProvider):
                     "role": "user",
                     "content": [
                         {"type": "text", "text": request.prompt},
-                        {"type": "image_url", "image_url": {"url": f"data:{request.mime_type};base64,{image_data}"}},
+                        file_part,
                     ],
                 }
             ],

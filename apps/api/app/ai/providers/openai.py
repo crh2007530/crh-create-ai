@@ -60,7 +60,12 @@ class OpenAIProvider(AIProvider):
             )
 
         model = request.model or self.config.model or "gpt-5.5-mini"
-        image_data = base64.b64encode(request.image_bytes).decode("ascii")
+        file_data = base64.b64encode(request.image_bytes).decode("ascii")
+        file_part = (
+            {"type": "input_file", "filename": "problem.pdf", "file_data": f"data:{request.mime_type};base64,{file_data}"}
+            if request.mime_type == "application/pdf"
+            else {"type": "input_image", "image_url": f"data:{request.mime_type};base64,{file_data}"}
+        )
         body: dict[str, Any] = {
             "model": model,
             "input": [
@@ -68,7 +73,7 @@ class OpenAIProvider(AIProvider):
                     "role": "user",
                     "content": [
                         {"type": "input_text", "text": request.prompt},
-                        {"type": "input_image", "image_url": f"data:{request.mime_type};base64,{image_data}"},
+                        file_part,
                     ],
                 }
             ],

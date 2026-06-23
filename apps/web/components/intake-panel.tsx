@@ -1,13 +1,14 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Camera, Send, X } from "lucide-react";
+import { Camera, FileText, ImageUp, Send, X } from "lucide-react";
 import type { Subject } from "@/lib/types";
 
 export function IntakePanel(props: {
   question: string;
   subject: Subject;
   fileName?: string;
+  fileKind?: "image" | "pdf" | "file";
   imagePreviewUrl?: string;
   loading: boolean;
   phaseLabel: string;
@@ -22,16 +23,22 @@ export function IntakePanel(props: {
       <div className="grid gap-3">
         <textarea
           className="min-h-36 w-full resize-y border border-neutral-300 p-4 text-base leading-7 outline-none focus:border-neutral-900"
-          placeholder={"输入题目，或拍照上传题目\n例如：A = 1 2 / 3 4，求行列式"}
+          placeholder={"输入题目，或拍照/上传题目图片/PDF\n例如：A = 1 2 / 3 4，求行列式"}
           value={props.question}
           onChange={(event) => props.onQuestion(event.target.value)}
         />
 
-        {props.imagePreviewUrl ? (
+        {props.fileName ? (
           <div className="grid gap-2 border border-neutral-300 bg-neutral-50 p-2 sm:grid-cols-[120px_1fr_auto] sm:items-center">
-            <img src={props.imagePreviewUrl} alt="题目图片预览" className="max-h-44 w-full object-contain sm:h-24" />
+            {props.imagePreviewUrl ? (
+              <img src={props.imagePreviewUrl} alt="题目图片预览" className="max-h-44 w-full object-contain sm:h-24" />
+            ) : (
+              <div className="grid h-24 place-items-center border border-neutral-300 bg-white">
+                <FileText size={34} />
+              </div>
+            )}
             <div className="min-w-0 text-sm text-neutral-700">
-              <div className="font-bold text-neutral-950">图片已选择</div>
+              <div className="font-bold text-neutral-950">{props.fileKind === "pdf" ? "PDF 已选择" : "文件已选择"}</div>
               <div className="mt-1 truncate">{props.fileName}</div>
               <div className="mt-1 text-neutral-500">开始讲题后会先识别题目文本。</div>
             </div>
@@ -42,7 +49,7 @@ export function IntakePanel(props: {
           </div>
         ) : null}
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_1.3fr]">
           <label className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 border border-neutral-300 bg-white px-4 font-bold">
             <Camera size={18} />
             拍照
@@ -54,8 +61,18 @@ export function IntakePanel(props: {
               onChange={(event) => props.onFile(event.target.files?.[0] ?? null)}
             />
           </label>
+          <label className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 border border-neutral-300 bg-white px-4 font-bold">
+            <ImageUp size={18} />
+            上传
+            <input
+              className="hidden"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf"
+              onChange={(event) => props.onFile(event.target.files?.[0] ?? null)}
+            />
+          </label>
           <button
-            className="inline-flex h-12 items-center justify-center gap-2 border border-neutral-900 bg-neutral-900 px-4 font-bold text-white disabled:opacity-60"
+            className="col-span-2 inline-flex h-12 items-center justify-center gap-2 border border-neutral-900 bg-neutral-900 px-4 font-bold text-white disabled:opacity-60 sm:col-span-1"
             onClick={props.onSolve}
             disabled={props.loading}
           >

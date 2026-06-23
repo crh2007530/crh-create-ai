@@ -31,6 +31,7 @@ export default function HomePage() {
   const currentModel = modelLabel(provider, model);
   const loading = !["idle", "done", "error"].includes(phase);
   const phaseLabel = getPhaseLabel(phase, currentModel);
+  const fileKind = file?.type.startsWith("image/") ? "image" : file?.type === "application/pdf" ? "pdf" : "file";
   const imagePreviewUrl = useMemo(() => {
     if (!file || !file.type.startsWith("image/")) return "";
     return URL.createObjectURL(file);
@@ -85,6 +86,7 @@ export default function HomePage() {
           question={question}
           subject={subject}
           fileName={file?.name}
+          fileKind={file ? fileKind : undefined}
           imagePreviewUrl={imagePreviewUrl}
           loading={loading}
           phaseLabel={phaseLabel}
