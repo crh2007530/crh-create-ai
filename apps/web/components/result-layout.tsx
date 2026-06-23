@@ -172,5 +172,6 @@ function statusLabel(status: string) {
   if (status === "real_ai") return "真实 AI 调用";
   if (status === "provider_fallback") return "AI 不可用，已回退";
   if (status === "engine_template") return "引擎 + 教学模板";
+  if (status === "vision_byok_engine_template") return "用户 API 识图 + 教学引擎";
   return status;
 }

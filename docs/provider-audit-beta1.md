@@ -49,3 +49,54 @@ Known `model_status` values:
 - DeepSeek image requests are bridged through a vision provider because DeepSeek does not directly receive raw images.
 - GitHub Pages static preview uses browser fallback and reports `engine_template`.
 - Circuit SVG is now a teaching-board view: each step shows one goal, one focused diagram, and one conclusion.
+
+## User-Owned API Configuration
+
+Beta-1 uses BYOK: users bring their own API key. The app stores configuration only in browser `localStorage`:
+
+```json
+{
+  "provider": "openai",
+  "apiKey": "...",
+  "baseUrl": "https://api.openai.com/v1",
+  "model": "gpt-5.5"
+}
+```
+
+No database, login system, or project-wide AI quota is added.
+
+### API
+
+`POST /provider/test`
+
+```json
+{
+  "provider": "openai",
+  "apiKey": "...",
+  "baseUrl": "https://api.openai.com/v1",
+  "model": "gpt-5.5"
+}
+```
+
+Success:
+
+```json
+{
+  "success": true,
+  "provider": "openai",
+  "model": "gpt-5.5"
+}
+```
+
+Failure:
+
+```json
+{
+  "success": false,
+  "provider": "openai",
+  "model": "gpt-5.5",
+  "error": "Invalid API Key"
+}
+```
+
+`POST /solve` also accepts optional form fields `apiKey` and `baseUrl`. They override provider configuration for the current request only and are not persisted server-side.

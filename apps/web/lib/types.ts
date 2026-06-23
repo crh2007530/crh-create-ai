@@ -2,6 +2,22 @@ export type Provider = "auto" | "openai" | "gemini" | "deepseek" | "custom";
 export type Profile = "auto" | "quality" | "balanced" | "fast" | "economy";
 export type Subject = "auto" | "circuit" | "linear_algebra";
 
+export type ApiProvider = Exclude<Provider, "auto">;
+
+export type ApiConfig = {
+  provider: ApiProvider;
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+};
+
+export type ProviderTestResult = {
+  success: boolean;
+  provider: string;
+  model: string;
+  error?: string;
+};
+
 export type Visualization = {
   id: string;
   kind: "circuit_svg" | "matrix_svg" | "overlay_svg";

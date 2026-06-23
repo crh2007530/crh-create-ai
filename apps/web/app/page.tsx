@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { IntakePanel } from "@/components/intake-panel";
 import { modelLabel, ModelSelector } from "@/components/model-selector";
 import { ResultLayout } from "@/components/result-layout";
+import { loadApiConfig } from "@/lib/api-config";
 import { solveProblem } from "@/lib/api";
 import type { Profile, Provider, SolvePhase, SolveResponse, Subject } from "@/lib/types";
 
@@ -18,6 +19,14 @@ export default function HomePage() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [phase, setPhase] = useState<SolvePhase>("idle");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const saved = loadApiConfig();
+    if (saved) {
+      setProvider(saved.provider);
+      setModel(saved.model);
+    }
+  }, []);
 
   const currentModel = modelLabel(provider, model);
   const loading = !["idle", "done", "error"].includes(phase);
@@ -49,7 +58,7 @@ export default function HomePage() {
       setPhase("done");
     } catch (err) {
       setPhase("error");
-      setError(err instanceof Error ? err.message : "生成失败，请检查模型配置或稍后重试。");
+      setError(err instanceof Error ? err.message : "生成失败，请检查 API 配置或稍后重试。");
     }
   }
 
@@ -61,7 +70,7 @@ export default function HomePage() {
             <div className="grid h-9 w-9 shrink-0 place-items-center border-2 border-neutral-950 font-black">c</div>
             <div>
               <h1 className="text-lg font-black leading-5">crh create AI</h1>
-              <p className="text-xs text-neutral-600">拍照识题，按步骤看懂</p>
+              <p className="text-xs text-neutral-600">用户自己的 AI + 教学可视化引擎</p>
             </div>
           </div>
           <div className="hidden text-right text-xs text-neutral-600 sm:block">

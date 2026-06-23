@@ -1,11 +1,28 @@
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 
+from app.ai.provider_registry import create_provider
 from app.ai.provider_registry import build_provider_registry
+from app.ai.providers.base import ProviderConfig, ProviderSolveRequest
 from app.core.config import Settings, get_settings
 from app.schemas.solution import ModelPreference, ModelProfile, Provider, SolveResponse, Subject
 from app.services.problem_service import solve_problem
 
 router = APIRouter()
+
+
+class ProviderTestRequest(BaseModel):
+    provider: Provider
+    apiKey: str
+    baseUrl: str | None = None
+    model: str
+
+
+class ProviderTestResponse(BaseModel):
+    success: bool
+    provider: str
+    model: str
+    error: str | None = None
 
 
 @router.get("/health")
@@ -41,6 +58,33 @@ async def models(settings: Settings = Depends(get_settings)):
     return {"providers": providers}
 
 
+@router.post("/provider/test", response_model=ProviderTestResponse)
+async def provider_test(payload: ProviderTestRequest) -> ProviderTestResponse:
+    try:
+        provider = create_provider(
+            ProviderConfig(
+                provider=payload.provider.value if payload.provider != Provider.auto else Provider.openai.value,
+                api_key=payload.apiKey,
+                base_url=payload.baseUrl,
+                model=payload.model,
+                max_tokens=32,
+            )
+        )
+        result = await provider.solve(
+            ProviderSolveRequest(
+                prompt="Reply with OK.",
+                payload={"purpose": "connection_test"},
+                model=payload.model,
+                max_tokens=16,
+            )
+        )
+        if result.metadata.get("mock"):
+            return ProviderTestResponse(success=False, provider=provider.name, model=payload.model, error=str(result.metadata.get("reason")))
+        return ProviderTestResponse(success=True, provider=provider.name, model=payload.model)
+    except Exception as exc:
+        return ProviderTestResponse(success=False, provider=payload.provider.value, model=payload.model, error=str(exc))
+
+
 @router.post("/solve", response_model=SolveResponse)
 async def solve(
     question: str = Form(""),
@@ -48,9 +92,37 @@ async def solve(
     profile: ModelProfile = Form(ModelProfile.auto),
     provider: Provider = Form(Provider.auto),
     model: str | None = Form(None),
+    apiKey: str | None = Form(None),
+    baseUrl: str | None = Form(None),
     file: UploadFile | None = File(None),
     settings: Settings = Depends(get_settings),
 ) -> SolveResponse:
+    if apiKey:
+        settings = settings.model_copy(deep=True)
+        provider_name = provider.value if provider != Provider.auto else Provider.openai.value
+        if provider_name == "openai":
+            settings.openai_api_key = apiKey
+            if baseUrl:
+                settings.openai_base_url = baseUrl
+            if model:
+                settings.openai_model = model
+        elif provider_name == "gemini":
+            settings.gemini_api_key = apiKey
+            if baseUrl:
+                settings.gemini_base_url = baseUrl
+            if model:
+                settings.gemini_model = model
+        elif provider_name == "deepseek":
+            settings.deepseek_api_key = apiKey
+            if baseUrl:
+                settings.deepseek_base_url = baseUrl
+            if model:
+                settings.deepseek_model = model
+        else:
+            settings.custom_api_key = apiKey
+            settings.custom_base_url = baseUrl
+            settings.custom_model = model
+
     preference = ModelPreference(provider=provider, profile=profile, model=model)
     file_bytes = await file.read() if file else None
     mime_type = file.content_type if file else None
