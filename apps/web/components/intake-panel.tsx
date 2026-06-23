@@ -23,7 +23,7 @@ export function IntakePanel(props: {
       <div className="grid gap-3">
         <textarea
           className="min-h-36 w-full resize-y border border-neutral-300 p-4 text-base leading-7 outline-none focus:border-neutral-900"
-          placeholder={"输入题目，或拍照/上传题目图片/PDF\n例如：A = 1 2 / 3 4，求行列式"}
+          placeholder={"输入题目，或拍照/上传题目图片/PDF\n例如：A =\\n1 2\\n3 4\\n求行列式\n例如：求图中 Node A 电压"}
           value={props.question}
           onChange={(event) => props.onQuestion(event.target.value)}
         />
@@ -52,7 +52,7 @@ export function IntakePanel(props: {
             <div className="min-w-0 text-sm text-neutral-700">
               <div className="font-bold text-neutral-950">{props.fileKind === "pdf" ? "PDF 已选择" : "文件已选择"}</div>
               <div className="mt-1 truncate">{props.fileName}</div>
-              <div className="mt-1 text-neutral-500">如果识别错科目，可先切换“线性代数/电路分析”再开始讲题。</div>
+              <div className="mt-1 text-neutral-500">识别错科目时，先切换“线性代数 / 电路分析”再开始讲题。</div>
             </div>
             <button className="inline-flex h-9 items-center justify-center gap-1 border border-neutral-300 bg-white px-3" onClick={() => props.onFile(null)}>
               <X size={15} />
@@ -89,7 +89,7 @@ export function IntakePanel(props: {
             disabled={props.loading}
           >
             <Send size={18} />
-            {props.loading ? props.phaseLabel || "生成中" : "开始讲题"}
+            {props.loading ? props.phaseLabel || "生成中..." : "开始讲题"}
           </button>
         </div>
 

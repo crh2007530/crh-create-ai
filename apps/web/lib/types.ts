@@ -80,5 +80,6 @@ export type SolveResponse = {
   provider?: string | null;
   model?: string | null;
   model_status?: string;
+  extracted_text?: string;
   warnings: string[];
 };

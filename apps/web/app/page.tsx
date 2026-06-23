@@ -45,20 +45,23 @@ export default function HomePage() {
 
   async function handleSolve() {
     setError("");
+    setResponse(undefined);
     setPhase(file ? "recognizing" : "parsing");
     try {
-      if (file) await delay(350);
-      setPhase("parsing");
-      await delay(180);
-      setPhase("calculating");
+      if (file) await delay(200);
+      setPhase(file ? "recognizing" : "parsing");
       const result = await solveProblem({ question, subject, provider, profile, model, file });
+      setPhase("calculating");
+      await delay(120);
       setPhase("validating");
-      await delay(180);
+      await delay(120);
+      if (result.extracted_text) setQuestion(result.extracted_text);
       setResponse(result);
       setActiveIndex(0);
       setPhase("done");
     } catch (err) {
       setPhase("error");
+      setResponse(undefined);
       setError(err instanceof Error ? err.message : "生成失败，请检查 API 配置或稍后重试。");
     }
   }
@@ -107,8 +110,12 @@ export default function HomePage() {
 
         {error ? (
           <section className="border border-red-300 bg-red-50 p-4 text-red-800">
-            <div className="font-extrabold">出错了</div>
+            <div className="font-extrabold">无法生成可视化</div>
             <p className="mt-1 text-sm leading-6">{error}</p>
+            <div className="mt-3 grid gap-2 text-sm leading-6">
+              <p>上传图片/PDF 时，必须先在高级设置保存支持视觉识别的 API Key。</p>
+              <p>如果只是想试线性代数可视化，可以直接把题目文字输入到上方文本框。</p>
+            </div>
             <button className="mt-3 border border-red-300 bg-white px-3 py-2 font-bold" onClick={handleSolve}>
               重试
             </button>
@@ -122,9 +129,9 @@ export default function HomePage() {
 }
 
 function getPhaseLabel(phase: SolvePhase, model: string) {
-  if (phase === "recognizing") return "正在识别题目...";
+  if (phase === "recognizing") return `正在调用 ${model} 识别题目...`;
   if (phase === "parsing") return "正在解析题目...";
-  if (phase === "calculating") return `正在调用 ${model}...`;
+  if (phase === "calculating") return "正在生成教学步骤图...";
   if (phase === "validating") return "正在验证结果...";
   if (phase === "done") return "已生成";
   if (phase === "error") return "生成失败";

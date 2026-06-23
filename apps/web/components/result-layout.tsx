@@ -14,7 +14,7 @@ export function ResultLayout(props: {
   if (!solution) {
     return (
       <section className="textbook-panel grid min-h-48 place-items-center p-6 text-center text-neutral-500">
-        结果会显示为答案卡、验证卡和可展开步骤图。
+        结果会显示为答案卡、验证卡和可展开步骤图。文字题可直接使用；图片/PDF 需要先配置支持视觉的 API。
       </section>
     );
   }
@@ -25,6 +25,7 @@ export function ResultLayout(props: {
         <AnswerCard response={props.response} />
         <ValidationCard response={props.response} />
         <ModelCard response={props.response} />
+        <QuestionCard response={props.response} />
         <TeacherAsk response={props.response} activeStepIndex={props.activeIndex} />
         <MobileStepList steps={solution.steps} />
       </section>
@@ -69,14 +70,14 @@ export function ResultLayout(props: {
 function QuestionCard(props: { response?: SolveResponse }) {
   const solution = props.response?.solution;
   return (
-    <div>
-      <div className="mb-3 border-b border-neutral-300 pb-2 font-extrabold">原题</div>
+    <div className="textbook-panel p-3 lg:border-0 lg:p-0 lg:shadow-none">
+      <div className="mb-3 border-b border-neutral-300 pb-2 font-extrabold">识别出的原题</div>
       <div className="min-h-28 whitespace-pre-wrap border border-dashed border-neutral-400 bg-neutral-50 p-4 text-sm leading-7 text-neutral-700">
-        {solution?.problem.original_text ?? "-"}
+        {props.response?.extracted_text || solution?.problem.original_text || "-"}
       </div>
       <div className="mt-3 grid gap-2 border-t border-neutral-300 pt-3 text-sm text-neutral-600">
-        <MetaRow label="科目" value={solution?.problem.subject ?? "-"} />
-        <MetaRow label="主题" value={solution?.problem.topic ?? "-"} />
+        <MetaRow label="科目" value={subjectLabel(solution?.problem.subject)} />
+        <MetaRow label="题型" value={solution?.problem.topic ?? "-"} />
         {props.response?.warnings.map((warning) => (
           <div key={warning} className="border border-amber-300 bg-amber-50 p-2 text-amber-800">
             {warning}
@@ -164,19 +165,25 @@ function MobileStepList(props: { steps: SolutionStep[] }) {
   );
 }
 
-function MetaRow(props: { label: string; value: string }) {
+function MetaRow(props: { label: string; value?: string }) {
   return (
     <div className="flex justify-between gap-3">
       <span>{props.label}</span>
-      <strong className="text-right text-neutral-950">{props.value}</strong>
+      <strong className="text-right text-neutral-950">{props.value || "-"}</strong>
     </div>
   );
+}
+
+function subjectLabel(subject?: string) {
+  if (subject === "linear_algebra") return "线性代数";
+  if (subject === "circuit") return "电路分析";
+  return subject || "-";
 }
 
 function statusLabel(status: string) {
   if (status === "real_ai") return "真实 AI 调用";
   if (status === "provider_fallback") return "AI 不可用，已回退";
-  if (status === "engine_template") return "引擎 + 教学模板";
-  if (status === "vision_byok_engine_template") return "用户 API 识图 + 教学引擎";
+  if (status === "engine_template") return "本地教学引擎";
+  if (status === "vision_byok_engine_template") return "用户 API 识图 + 本地教学引擎";
   return status;
 }

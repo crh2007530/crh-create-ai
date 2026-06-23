@@ -138,13 +138,13 @@ function circuitSvg(title: string, goal: string, conclusion: string, body: strin
   <style>.h1{font:800 20px Arial;fill:#111}.label{font:700 14px Arial;fill:#111}.text{font:600 13px Arial;fill:#333}.wire{stroke:#111;stroke-width:3;fill:none;stroke-linecap:round}.muted{stroke:#bcbcbc;fill:none;stroke-width:2.2}.box{fill:#f8f8f8;stroke:#111;stroke-width:1.6}</style>
   <rect x="16" y="16" width="358" height="58" fill="#f7f7f7" stroke="#111"/>
   <text x="28" y="40" class="h1">${title}</text>
-  <text x="28" y="62" class="text">鏈鐩爣锛?{goal}</text>
+  <text x="28" y="62" class="text">本步目标：${goal}</text>
   <g transform="translate(0 92)">${body}</g>
   <rect x="16" y="432" width="358" height="50" class="box"/>
-  <text x="28" y="454" class="label">鏈缁撹</text>
+  <text x="28" y="454" class="label">本步结论</text>
   <text x="28" y="474" class="text">${conclusion}</text>
   <rect x="16" y="494" width="358" height="46" fill="#fff" stroke="#d0d0d0"/>
-  <text x="28" y="520" class="text">鑰佸笀瑙ｉ噴锛?{explanation}</text>
+  <text x="28" y="520" class="text">老师解释：${explanation}</text>
 </svg>`;
 }
 
@@ -159,7 +159,7 @@ function firstRowExpansionFormula(matrix: number[][]): { symbolic: string; subst
     const [[a, b], [c, d]] = matrix;
     return {
       symbolic: "det(A) = a11a22 - a12a21",
-      substituted: `det(A) = ${formatNumber(a)}脳${formatNumber(d)} - ${formatNumber(b)}脳${formatNumber(c)}`,
+      substituted: `det(A) = ${formatNumber(a)}x${formatNumber(d)} - ${formatNumber(b)}x${formatNumber(c)}`,
       value: `det(A) = ${formatNumber(determinant(matrix) ?? 0)}`
     };
   }
@@ -167,7 +167,7 @@ function firstRowExpansionFormula(matrix: number[][]): { symbolic: string; subst
   const terms = matrix[0].map((value, colIndex) => {
     const sign = colIndex % 2 === 0 ? "+" : "-";
     const minorDet = determinant(minorMatrix(matrix, 0, colIndex)) ?? 0;
-    return `${sign} ${formatNumber(value)}脳(${formatNumber(minorDet)})`;
+    return `${sign} ${formatNumber(value)}x(${formatNumber(minorDet)})`;
   });
   return {
     symbolic: "det(A) = a11M11 - a12M12 + a13M13 ...",
