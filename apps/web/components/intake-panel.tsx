@@ -21,19 +21,22 @@ export function IntakePanel(props: {
   return (
     <section className="textbook-panel p-3 lg:p-4">
       <div className="grid gap-3">
-        <textarea
-          className="min-h-36 w-full resize-y border border-neutral-300 p-4 text-base leading-7 outline-none focus:border-neutral-900"
-          placeholder={"输入题目，或拍照/上传题目图片/PDF\n例如：A =\\n1 2\\n3 4\\n求行列式\n例如：求图中 Node A 电压"}
-          value={props.question}
-          onChange={(event) => props.onQuestion(event.target.value)}
-        />
+        <div className="grid gap-2">
+          <div className="font-extrabold">拍照识别线代题</div>
+          <textarea
+            className="min-h-32 w-full resize-y border border-neutral-300 p-4 text-base leading-7 outline-none focus:border-neutral-900"
+            placeholder={"可以直接拍照，也可以输入题目文字\n例如：A =\\n1 2\\n3 4\\n求行列式\n例如：求矩阵 A 的秩"}
+            value={props.question}
+            onChange={(event) => props.onQuestion(event.target.value)}
+          />
+        </div>
 
         <div className="grid grid-cols-3 gap-2 text-sm">
-          <SubjectButton active={props.subject === "auto"} onClick={() => props.onSubject("auto")}>
-            自动识别
-          </SubjectButton>
           <SubjectButton active={props.subject === "linear_algebra"} onClick={() => props.onSubject("linear_algebra")}>
             线性代数
+          </SubjectButton>
+          <SubjectButton active={props.subject === "auto"} onClick={() => props.onSubject("auto")}>
+            自动识别
           </SubjectButton>
           <SubjectButton active={props.subject === "circuit"} onClick={() => props.onSubject("circuit")}>
             电路分析
@@ -50,9 +53,9 @@ export function IntakePanel(props: {
               </div>
             )}
             <div className="min-w-0 text-sm text-neutral-700">
-              <div className="font-bold text-neutral-950">{props.fileKind === "pdf" ? "PDF 已选择" : "文件已选择"}</div>
+              <div className="font-bold text-neutral-950">{props.fileKind === "pdf" ? "PDF 已选择" : "图片已选择"}</div>
               <div className="mt-1 truncate">{props.fileName}</div>
-              <div className="mt-1 text-neutral-500">识别错科目时，先切换“线性代数 / 电路分析”再开始讲题。</div>
+              <div className="mt-1 text-neutral-500">点击开始讲题后，平台会先识别图片，再生成线代步骤图。</div>
             </div>
             <button className="inline-flex h-9 items-center justify-center gap-1 border border-neutral-300 bg-white px-3" onClick={() => props.onFile(null)}>
               <X size={15} />

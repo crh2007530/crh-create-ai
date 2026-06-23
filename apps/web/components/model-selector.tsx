@@ -5,16 +5,17 @@ import { ApiSettings } from "./api-settings";
 import type { ApiConfig, Profile, Provider } from "@/lib/types";
 
 export function modelLabel(provider: Provider, model: string) {
-  const resolvedProvider = provider === "auto" ? "openai" : provider;
+  if (provider === "auto" && !model) return "平台默认识题";
+  const resolvedProvider = provider === "auto" ? "custom" : provider;
   const resolvedModel =
     model ||
     (resolvedProvider === "openai"
-      ? "gpt-5.5"
+      ? "gpt-4o-mini"
       : resolvedProvider === "gemini"
-        ? "gemini-2.5-pro"
+        ? "gemini-2.5-flash"
         : resolvedProvider === "deepseek"
-          ? "deepseek-v3"
-          : "custom-model");
+          ? "deepseek-chat"
+          : "gpt-4o-mini");
   const providerName =
     resolvedProvider === "openai"
       ? "OpenAI"
@@ -22,7 +23,7 @@ export function modelLabel(provider: Provider, model: string) {
         ? "Gemini"
         : resolvedProvider === "deepseek"
           ? "DeepSeek"
-          : "Custom";
+          : "平台";
   return `${providerName} · ${resolvedModel}`;
 }
 
@@ -45,10 +46,10 @@ export function ModelSelector(props: {
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
         <span className="inline-flex items-center gap-2 text-sm font-bold">
           <BrainCircuit size={16} />
-          高级设置
+          高级设置（可选）
         </span>
         <span className="inline-flex items-center gap-1 text-xs text-neutral-600">
-          当前模型：{modelLabel(props.provider, props.model)}
+          {modelLabel(props.provider, props.model)}
           <ChevronDown size={14} />
         </span>
       </summary>

@@ -10,7 +10,7 @@ import type { Profile, Provider, SolvePhase, SolveResponse, Subject } from "@/li
 
 export default function HomePage() {
   const [question, setQuestion] = useState("A =\n1 2\n3 4\n求行列式");
-  const [subject, setSubject] = useState<Subject>("auto");
+  const [subject, setSubject] = useState<Subject>("linear_algebra");
   const [provider, setProvider] = useState<Provider>("auto");
   const [profile, setProfile] = useState<Profile>("auto");
   const [model, setModel] = useState("");
@@ -48,8 +48,6 @@ export default function HomePage() {
     setResponse(undefined);
     setPhase(file ? "recognizing" : "parsing");
     try {
-      if (file) await delay(200);
-      setPhase(file ? "recognizing" : "parsing");
       const result = await solveProblem({ question, subject, provider, profile, model, file });
       setPhase("calculating");
       await delay(120);
@@ -62,7 +60,7 @@ export default function HomePage() {
     } catch (err) {
       setPhase("error");
       setResponse(undefined);
-      setError(err instanceof Error ? err.message : "生成失败，请检查 API 配置或稍后重试。");
+      setError(err instanceof Error ? err.message : "生成失败，请稍后重试。");
     }
   }
 
@@ -74,11 +72,11 @@ export default function HomePage() {
             <div className="grid h-9 w-9 shrink-0 place-items-center border-2 border-neutral-950 font-black">c</div>
             <div>
               <h1 className="text-lg font-black leading-5">crh create AI</h1>
-              <p className="text-xs text-neutral-600">用户自己的 AI + 教学可视化引擎</p>
+              <p className="text-xs text-neutral-600">拍照识题 + 线代教学可视化</p>
             </div>
           </div>
           <div className="hidden text-right text-xs text-neutral-600 sm:block">
-            当前模型
+            平台模式
             <div className="font-bold text-neutral-950">{currentModel}</div>
           </div>
         </div>
@@ -110,11 +108,10 @@ export default function HomePage() {
 
         {error ? (
           <section className="border border-red-300 bg-red-50 p-4 text-red-800">
-            <div className="font-extrabold">无法生成可视化</div>
+            <div className="font-extrabold">拍题识别暂时不可用</div>
             <p className="mt-1 text-sm leading-6">{error}</p>
-            <div className="mt-3 grid gap-2 text-sm leading-6">
-              <p>上传图片/PDF 时，必须先在高级设置保存支持视觉识别的 API Key。</p>
-              <p>如果只是想试线性代数可视化，可以直接把题目文字输入到上方文本框。</p>
+            <div className="mt-3 text-sm leading-6">
+              你仍然可以直接输入线代题文字，系统会本地生成步骤和 SVG 可视化。
             </div>
             <button className="mt-3 border border-red-300 bg-white px-3 py-2 font-bold" onClick={handleSolve}>
               重试
@@ -129,7 +126,7 @@ export default function HomePage() {
 }
 
 function getPhaseLabel(phase: SolvePhase, model: string) {
-  if (phase === "recognizing") return `正在调用 ${model} 识别题目...`;
+  if (phase === "recognizing") return `正在调用平台模型识别题目...`;
   if (phase === "parsing") return "正在解析题目...";
   if (phase === "calculating") return "正在生成教学步骤图...";
   if (phase === "validating") return "正在验证结果...";

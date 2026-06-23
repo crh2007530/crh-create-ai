@@ -6,17 +6,17 @@ def route_models(preference: ModelPreference, needs_vision: bool) -> dict[str, s
     profile = preference.profile.value
 
     if provider == "auto":
-        provider = "openai"
+        provider = "custom"
 
     vision_provider = provider
-    vision_model = preference.model or "gpt-5.5-mini"
+    vision_model = preference.model or "gpt-4o-mini"
     reason_provider = provider
-    reason_model = preference.model or "gpt-5.5"
+    reason_model = preference.model or "gpt-4o-mini"
     explain_provider = provider
-    explain_model = preference.model or "gpt-5.5-mini"
+    explain_model = preference.model or "gpt-4o-mini"
 
     if profile in {"fast", "economy"}:
-        vision_model = "gpt-5.5-mini" if provider == "openai" else "gemini-2.5-flash"
+        vision_model = "gpt-4o-mini" if provider in {"openai", "custom"} else "gemini-2.5-flash"
         reason_model = "deepseek-chat" if provider == "deepseek" else vision_model
         explain_model = reason_model
 
@@ -29,14 +29,14 @@ def route_models(preference: ModelPreference, needs_vision: bool) -> dict[str, s
         reason_model = preference.model or "deepseek-reasoner"
         explain_model = "deepseek-chat"
         if needs_vision:
-            vision_provider = "openai"
-            vision_model = "gpt-5.5-mini"
+            vision_provider = "custom"
+            vision_model = "gpt-4o-mini"
         else:
             vision_provider = "none"
             vision_model = "none"
 
     if provider == "custom":
-        reason_model = preference.model or "custom-model"
+        reason_model = preference.model or "gpt-4o-mini"
         explain_model = reason_model
         if needs_vision:
             vision_provider = "custom"

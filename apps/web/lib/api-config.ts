@@ -3,22 +3,22 @@ import type { ApiConfig, ApiProvider, Provider } from "./types";
 export const API_CONFIG_STORAGE_KEY = "crh-create-ai:api-config";
 
 export const defaultBaseUrlByProvider: Record<Provider, string> = {
-  auto: "https://api.openai.com/v1",
+  auto: "https://ai-pixel.online",
   openai: "https://api.openai.com/v1",
   gemini: "https://generativelanguage.googleapis.com/v1beta",
   deepseek: "https://api.deepseek.com",
-  custom: ""
+  custom: "https://ai-pixel.online"
 };
 
 export const defaultModelByProvider: Record<Provider, string> = {
-  auto: "gpt-5.5",
-  openai: "gpt-5.5",
-  gemini: "gemini-2.5-pro",
-  deepseek: "deepseek-v3",
-  custom: "custom-model"
+  auto: "gpt-4o-mini",
+  openai: "gpt-4o-mini",
+  gemini: "gemini-2.5-flash",
+  deepseek: "deepseek-chat",
+  custom: "gpt-4o-mini"
 };
 
-export function createDefaultApiConfig(provider: ApiProvider = "openai"): ApiConfig {
+export function createDefaultApiConfig(provider: ApiProvider = "custom"): ApiConfig {
   return {
     provider,
     apiKey: "",

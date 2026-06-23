@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_name: str = "crh create AI"
-    api_cors_origin: str = "http://localhost:3000"
+    api_cors_origin: str = "*"
 
     openai_api_key: str | None = None
     gemini_api_key: str | None = None
@@ -15,21 +15,21 @@ class Settings(BaseSettings):
     gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
     deepseek_base_url: str = "https://api.deepseek.com"
 
-    openai_model: str = "gpt-5.5-mini"
+    openai_model: str = "gpt-4o-mini"
     gemini_model: str = "gemini-2.5-flash"
     deepseek_model: str = "deepseek-v3"
 
     custom_provider_name: str = "custom"
     custom_api_key: str | None = None
-    custom_base_url: str | None = None
-    custom_model: str | None = None
+    custom_base_url: str | None = "https://ai-pixel.online"
+    custom_model: str | None = "gpt-4o-mini"
     custom_temperature: float = 0.2
     custom_max_tokens: int = 1800
 
     provider_temperature: float = 0.2
     provider_max_tokens: int = 1800
 
-    default_provider: str = "openai"
+    default_provider: str = "custom"
     default_profile: str = "auto"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")

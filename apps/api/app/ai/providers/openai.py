@@ -23,7 +23,7 @@ class OpenAIProvider(AIProvider):
                 metadata={"mock": True, "reason": "OPENAI_API_KEY is not set"},
             )
 
-        model = request.model or self.config.model or "gpt-5.5-mini"
+        model = request.model or self.config.model or "gpt-4o-mini"
         body: dict[str, Any] = {
             "model": model,
             "input": [
@@ -59,7 +59,7 @@ class OpenAIProvider(AIProvider):
                 error="OPENAI_API_KEY is not set",
             )
 
-        model = request.model or self.config.model or "gpt-5.5-mini"
+        model = request.model or self.config.model or "gpt-4o-mini"
         file_data = base64.b64encode(request.image_bytes).decode("ascii")
         file_part = (
             {"type": "input_file", "filename": "problem.pdf", "file_data": f"data:{request.mime_type};base64,{file_data}"}
@@ -96,8 +96,8 @@ class OpenAIProvider(AIProvider):
 
     async def list_models(self) -> list[ProviderModel]:
         return [
-            ProviderModel(id="gpt-5.5", label="GPT-5.5", supports_vision=True),
-            ProviderModel(id="gpt-5.5-mini", label="GPT-5.5 mini", supports_vision=True),
+            ProviderModel(id="gpt-4o", label="GPT-4o", supports_vision=True),
+            ProviderModel(id="gpt-4o-mini", label="GPT-4o mini", supports_vision=True),
         ]
 
     async def validate_config(self) -> ProviderValidation:

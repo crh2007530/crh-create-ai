@@ -82,6 +82,7 @@ class SolveResponse(BaseModel):
     provider: str | None = None
     model: str | None = None
     model_status: str = "template"
+    extracted_text: str | None = None
     warnings: list[str] = Field(default_factory=list)
 
 

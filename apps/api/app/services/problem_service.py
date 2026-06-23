@@ -15,17 +15,6 @@ from app.services.validation_adapter import ValidationAdapter
 from app.services.visual_solution_adapter import visual_solution_to_legacy_steps
 
 
-def classify_subject(question: str, requested: Subject) -> str:
-    if requested != Subject.auto:
-        return "linear_algebra" if requested == Subject.linear_algebra else "circuit"
-    classification = classify_topic(question)
-    if classification.domain == "linear_algebra":
-        return "linear_algebra"
-    if classification.domain == "circuit":
-        return "circuit"
-    return "generic"
-
-
 def parse_problem_document(question: str, subject: Subject) -> ProblemDocument:
     try:
         registry = build_parser_registry()
@@ -88,10 +77,12 @@ async def extract_question_from_image(
 ) -> str:
     if not file_bytes:
         return ""
+
     provider_name = route.get("vision_provider", "none")
     if provider_name == "none":
-        warnings.append("当前模型不支持直接识图，请选择 OpenAI、Gemini 或支持视觉的 Custom API。")
+        warnings.append("当前模型不支持直接识别图片，请使用平台默认识题或支持视觉的模型。")
         return ""
+
     try:
         vision_result = await gateway.extract_problem_text(
             provider_name=provider_name,
@@ -100,7 +91,7 @@ async def extract_question_from_image(
             model=route.get("vision_model"),
         )
     except Exception as exc:
-        warnings.append(f"图片识别失败，已改用输入文字继续：{exc}")
+        warnings.append(f"图片识别失败：{exc}")
         return ""
 
     if vision_result.error:
@@ -126,17 +117,27 @@ async def solve_problem(
         extracted_text = await extract_question_from_image(gateway, route, file_bytes, mime_type, warnings)
 
     effective_question = extracted_text or question
+    if has_file and not effective_question.strip():
+        effective_question = "上传题目图片"
+
     problem_document = parse_problem_document(effective_question, subject)
     problem_document = force_problem_document(problem_document, subject)
     if extracted_text:
         problem_document.metadata["vision_extracted_text"] = extracted_text
         problem_document.metadata["original_user_text"] = question
 
-    resolved_subject = "linear_algebra" if problem_document.domain == "linear_algebra" else "circuit" if problem_document.domain == "circuit" else "linear_algebra"
+    resolved_subject = (
+        "linear_algebra"
+        if problem_document.domain == "linear_algebra"
+        else "circuit"
+        if problem_document.domain == "circuit"
+        else "linear_algebra"
+    )
     if problem_document.domain == "generic":
         problem_document.domain = resolved_subject
         problem_document.topic = "gaussian_elimination"
         problem_document.metadata["generic_default"] = "linear_algebra"
+
     topic = problem_document.topic if problem_document.topic != "generic" else (
         "gaussian_elimination" if resolved_subject == "linear_algebra" else "node_voltage"
     )
