@@ -52,11 +52,17 @@ async def solve(
     settings: Settings = Depends(get_settings),
 ) -> SolveResponse:
     preference = ModelPreference(provider=provider, profile=profile, model=model)
+    file_bytes = await file.read() if file else None
+    mime_type = file.content_type if file else None
     solution, route, warnings = await solve_problem(
         settings=settings,
         question=question,
         subject=subject,
         preference=preference,
         has_file=file is not None,
+        file_bytes=file_bytes,
+        mime_type=mime_type,
     )
+    if file and mime_type and not mime_type.startswith("image/"):
+        warnings.append("Beta-1 暂时只支持图片识别，PDF 会在后续云端解析阶段接入。")
     return SolveResponse(solution=solution, model_route=route, warnings=warnings)

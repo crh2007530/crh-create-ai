@@ -8,7 +8,7 @@ type MatrixResult = {
   inverse?: number[][];
   rank?: number;
   echelon?: number[][];
-  rowSteps?: string[];
+  rowSteps: string[];
 };
 
 function detectSubject(question: string, subject: Subject): "linear_algebra" | "circuit" {
@@ -32,18 +32,10 @@ function parseMatrix(question: string): number[][] | null {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => /^[-+\d\s,.;]+$/.test(line) && /\d/.test(line))
-    .map((line) =>
-      line
-        .replace(/[;,]/g, " ")
-        .split(/\s+/)
-        .filter(Boolean)
-        .map(Number)
-    )
+    .map((line) => line.replace(/[;,]/g, " ").split(/\s+/).filter(Boolean).map(Number))
     .filter((row) => row.length > 0 && row.every((value) => Number.isFinite(value)));
 
-  if (rows.length >= 2 && rows.every((row) => row.length === rows[0].length)) {
-    return rows;
-  }
+  if (rows.length >= 2 && rows.every((row) => row.length === rows[0].length)) return rows;
 
   const bracketMatch = question.match(/\[\s*([\s\S]*?)\s*\]/);
   if (!bracketMatch) return null;
@@ -59,7 +51,6 @@ function determinant(matrix: number[][]): number | undefined {
   if (matrix.length !== matrix[0]?.length) return undefined;
   if (matrix.length === 1) return matrix[0][0];
   if (matrix.length === 2) return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
-
   return matrix[0].reduce((sum, value, col) => {
     const minor = matrix.slice(1).map((row) => row.filter((_, index) => index !== col));
     return sum + (col % 2 === 0 ? 1 : -1) * value * (determinant(minor) ?? 0);
@@ -123,6 +114,10 @@ function matrixText(matrix: number[][]): string {
   return matrix.map((row) => `[ ${row.map(formatNumber).join("  ")} ]`).join("\n");
 }
 
+function visualization(id: string, kind: Visualization["kind"], svg: string): Visualization {
+  return { id, kind, mode: kind === "matrix_svg" ? "analysis" : "textbook", svg, highlights: [] };
+}
+
 function matrixSvg(title: string, matrix: number[][], note: string, highlightRow?: number): string {
   const cols = Math.max(...matrix.map((row) => row.length));
   const cellW = 64;
@@ -137,10 +132,7 @@ function matrixSvg(title: string, matrix: number[][], note: string, highlightRow
           ? `<rect x="56" y="${y - 25}" width="${cols * cellW + 8}" height="34" fill="#fff7cc" stroke="#111" stroke-width="1"/>`
           : "";
       const values = row
-        .map(
-          (value, colIndex) =>
-            `<text x="${88 + colIndex * cellW}" y="${y}" font-size="18" text-anchor="middle">${formatNumber(value)}</text>`
-        )
+        .map((value, colIndex) => `<text x="${88 + colIndex * cellW}" y="${y}" font-size="18" text-anchor="middle">${formatNumber(value)}</text>`)
         .join("");
       return `${bg}${values}`;
     })
@@ -184,21 +176,11 @@ function circuitSvg(title: string, note: string, step: number): string {
   ${node ? '<circle cx="300" cy="110" r="7" fill="#111"/><text x="286" y="146" font-size="16">Node A</text><text x="452" y="238" font-size="16">Ground</text>' : ""}
   ${current ? '<path d="M300 56 h96" stroke="#111" stroke-width="2" marker-end="url(#arrow)"/><text x="334" y="48" font-size="16">I1</text><path d="M520 132 v82" stroke="#111" stroke-width="2" marker-end="url(#arrow)"/><text x="532" y="176" font-size="16">I2</text>' : ""}
   ${equation ? '<rect x="250" y="160" width="250" height="44" fill="#fff7cc" stroke="#111"/><text x="266" y="188" font-size="17">KCL: (VA-Vs)/R1 + VA/R2 = 0</text>' : ""}
-  ${result ? '<rect x="238" y="160" width="260" height="70" fill="#f8f8f8" stroke="#111"/><text x="258" y="188" font-size="17">VA = solved</text><text x="258" y="214" font-size="17">I, P, Q, S show here</text>' : ""}
+  ${result ? '<rect x="238" y="160" width="260" height="70" fill="#f8f8f8" stroke="#111"/><text x="258" y="188" font-size="17">VA = solved</text><text x="258" y="214" font-size="17">I, P, Q, S</text>' : ""}
   <line x1="24" y1="336" x2="616" y2="336" stroke="#ddd"/>
   <text x="24" y="362" font-size="15" fill="#444">${note}</text>
   <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#111"/></marker></defs>
 </svg>`;
-}
-
-function visualization(id: string, kind: Visualization["kind"], svg: string): Visualization {
-  return {
-    id,
-    kind,
-    mode: kind === "matrix_svg" ? "analysis" : "textbook",
-    svg,
-    highlights: []
-  };
 }
 
 function solveMatrix(question: string, topic: Topic): { answer: string; result: MatrixResult; steps: SolveResponse["solution"]["steps"] } {
@@ -209,15 +191,7 @@ function solveMatrix(question: string, topic: Topic): { answer: string; result: 
   const det = determinant(matrix);
   const inverse = inverse2x2(matrix);
   const reduced = gaussian(matrix);
-  const result: MatrixResult = {
-    matrix,
-    determinant: det,
-    inverse,
-    rank: reduced.rank,
-    echelon: reduced.echelon,
-    rowSteps: reduced.rowSteps
-  };
-
+  const result: MatrixResult = { matrix, determinant: det, inverse, rank: reduced.rank, echelon: reduced.echelon, rowSteps: reduced.rowSteps };
   const finalMatrix = topic === "inverse_matrix" && inverse ? inverse : topic === "gaussian_elimination" ? reduced.echelon : matrix;
   const answer =
     topic === "determinant"
@@ -227,7 +201,7 @@ function solveMatrix(question: string, topic: Topic): { answer: string; result: 
         : topic === "inverse_matrix"
           ? inverse
             ? `A^-1 =\n${matrixText(inverse)}`
-            : "该矩阵当前只支持 2x2 可逆矩阵演示"
+            : "当前浏览器预览只支持 2x2 可逆矩阵演示"
           : `阶梯形矩阵：\n${matrixText(reduced.echelon)}`;
 
   const steps = [
@@ -243,9 +217,9 @@ function solveMatrix(question: string, topic: Topic): { answer: string; result: 
       id: "matrix-step-2",
       index: 2,
       title: topic === "determinant" ? "确定行列式方法" : "选择行变换",
-      teacher_explanation: "线性代数题通常先判断目标：求行列式、求逆、求秩对应的操作不同。",
+      teacher_explanation: "线性代数题要先看目标：求行列式、求逆、求秩对应的操作不同。",
       formula: topic === "determinant" ? "det(A)" : reduced.rowSteps[0] ?? "寻找主元",
-      visualization: visualization("matrix-v2", "matrix_svg", matrixSvg("Step 2 选择方法", matrix, "高亮第一行/主元位置", 0))
+      visualization: visualization("matrix-v2", "matrix_svg", matrixSvg("Step 2 选择方法", matrix, "高亮第一行或主元位置", 0))
     },
     {
       id: "matrix-step-3",
@@ -276,7 +250,7 @@ function solveMatrix(question: string, topic: Topic): { answer: string; result: 
   return { answer, result, steps };
 }
 
-function solveCircuit(question: string): { answer: string; steps: SolveResponse["solution"]["steps"] } {
+function solveCircuit(): { answer: string; steps: SolveResponse["solution"]["steps"] } {
   const titles = ["重绘电路图", "建立节点", "标注参考方向", "列节点方程", "显示结果"];
   const explanations = [
     "先按教材风格重绘电路，目的是把题图转换成可分析的支路结构。",
@@ -287,23 +261,14 @@ function solveCircuit(question: string): { answer: string; steps: SolveResponse[
   ];
 
   return {
-    answer: "已生成节点法教学步骤；真实电路数值求解将在云端后端接入后开放。",
+    answer: "已生成电路分析教学步骤；真实电路数值求解将在云端后端接入后开放。",
     steps: titles.map((title, index) => ({
       id: `circuit-step-${index + 1}`,
       index: index + 1,
       title,
       teacher_explanation: explanations[index],
-      formula:
-        index === 3
-          ? "KCL: (VA - VS) / R1 + VA / R2 = 0"
-          : index === 4
-            ? "VA, VB, I, P, Q, S"
-            : "根据题图建立分析对象",
-      visualization: visualization(
-        `circuit-v${index + 1}`,
-        "circuit_svg",
-        circuitSvg(`Step ${index + 1} ${title}`, explanations[index], index + 1)
-      )
+      formula: index === 3 ? "KCL: (VA - VS) / R1 + VA / R2 = 0" : index === 4 ? "VA, VB, I, P, Q, S" : "根据题图建立分析对象",
+      visualization: visualization(`circuit-v${index + 1}`, "circuit_svg", circuitSvg(`Step ${index + 1} ${title}`, explanations[index], index + 1))
     }))
   };
 }
@@ -320,7 +285,7 @@ export function solveLocally(input: {
   const domain = detectSubject(question, input.subject);
   const topic = detectTopic(question, domain);
   const matrixSolution = domain === "linear_algebra" ? solveMatrix(question, topic) : undefined;
-  const circuitSolution = domain === "circuit" ? solveCircuit(question) : undefined;
+  const circuitSolution = domain === "circuit" ? solveCircuit() : undefined;
   const steps = matrixSolution?.steps ?? circuitSolution?.steps ?? [];
   const answer = matrixSolution?.answer ?? circuitSolution?.answer ?? "";
 
@@ -350,7 +315,7 @@ export function solveLocally(input: {
             topic,
             input: { matrix: matrixSolution.result.matrix },
             output: matrixSolution.result,
-            steps: matrixSolution.result.rowSteps?.map((step, index) => ({ title: `行变换 ${index + 1}`, result: step })) ?? []
+            steps: matrixSolution.result.rowSteps.map((step, index) => ({ title: `行变换 ${index + 1}`, result: step }))
           }
         : undefined,
       validation_result: matrixSolution
@@ -370,13 +335,11 @@ export function solveLocally(input: {
       steps
     },
     model_route: {
-      vision_provider: "local",
-      vision_model: "browser",
+      vision_provider: input.file ? "local-preview" : "none",
+      vision_model: input.file ? "upload-preview" : "none",
       reason_provider: input.provider,
       reason_model: input.model || "local-teaching-engine"
     },
-    warnings: input.file
-      ? ["公网预览版已支持上传入口，但图片/OCR 需要云端后端部署后启用；当前按文字题演示。"]
-      : []
+    warnings: input.file ? ["公网预览版已支持图片上传入口；真实图片识别需要配置云端 Vision API。"] : []
   };
 }

@@ -19,6 +19,8 @@ export type SolutionStep = {
   visualization: Visualization;
 };
 
+export type SolvePhase = "idle" | "recognizing" | "parsing" | "calculating" | "validating" | "done" | "error";
+
 export type Solution = {
   id: string;
   summary: string;
@@ -32,7 +34,12 @@ export type Solution = {
   };
   problem_document?: Record<string, unknown>;
   math_result?: Record<string, unknown>;
-  validation_result?: Record<string, unknown>;
+  validation_result?: {
+    passed: boolean;
+    score: number;
+    checks?: Array<{ name: string; passed: boolean; message?: string }>;
+    metadata?: Record<string, unknown>;
+  };
   problem: {
     id: string;
     input_mode: "text" | "image" | "paste" | "pdf";

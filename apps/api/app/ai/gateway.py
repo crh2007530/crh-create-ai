@@ -1,6 +1,6 @@
 from app.ai.model_router import route_models
 from app.ai.provider_registry import ProviderRegistry, build_provider_registry
-from app.ai.providers.base import ProviderSolveRequest, ProviderSolveResult
+from app.ai.providers.base import ProviderSolveRequest, ProviderSolveResult, ProviderVisionRequest, ProviderVisionResult
 from app.core.config import Settings
 from app.normalizers.registry import NormalizerRegistry, build_normalizer_registry
 from app.schemas.solution import ModelPreference
@@ -48,6 +48,22 @@ class AIGateway:
         )
         normalizer = self.normalizers.get(provider_name)
         return normalizer.normalize(provider_result, topic=topic)
+
+    async def extract_problem_text(
+        self,
+        provider_name: str,
+        image_bytes: bytes,
+        mime_type: str,
+        model: str | None = None,
+    ) -> ProviderVisionResult:
+        provider = self.registry.get_provider(provider_name)
+        return await provider.extract_problem_text(
+            ProviderVisionRequest(
+                image_bytes=image_bytes,
+                mime_type=mime_type,
+                model=model,
+            )
+        )
 
     async def explain_bridge(self, preference: ModelPreference, needs_vision: bool) -> list[str]:
         route = self.route(preference, needs_vision)

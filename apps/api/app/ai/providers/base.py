@@ -32,6 +32,22 @@ class ProviderSolveResult:
 
 
 @dataclass
+class ProviderVisionRequest:
+    image_bytes: bytes
+    mime_type: str
+    prompt: str = "Extract the engineering problem text from this image. Return only the problem statement."
+    model: str | None = None
+
+
+@dataclass
+class ProviderVisionResult:
+    text: str
+    confidence: float = 0.0
+    metadata: dict[str, Any] = field(default_factory=dict)
+    error: str | None = None
+
+
+@dataclass
 class ProviderModel:
     id: str
     label: str
@@ -66,3 +82,12 @@ class AIProvider(ABC):
     @abstractmethod
     async def validate_config(self) -> ProviderValidation:
         """Validate provider config without leaking secrets."""
+
+    async def extract_problem_text(self, request: ProviderVisionRequest) -> ProviderVisionResult:
+        """Extract problem text from an image when a provider supports vision."""
+        return ProviderVisionResult(
+            text="",
+            confidence=0.0,
+            metadata={"provider": self.name, "supports_vision": False},
+            error=f"{self.name} does not support image extraction",
+        )

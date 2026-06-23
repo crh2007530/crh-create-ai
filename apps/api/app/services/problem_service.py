@@ -4,11 +4,11 @@ from app.ai.gateway import AIGateway
 from app.core.config import Settings
 from app.parsers.registry import build_parser_registry
 from app.parsers.topic_classifier import classify_topic
+from app.schemas.math_result import MathResult
 from app.schemas.problem_document import ProblemDocument
 from app.schemas.solution import ModelPreference, Problem, Solution, Subject
-from app.schemas.visual_step import VisualSolution
-from app.schemas.math_result import MathResult
 from app.schemas.validation_result import ValidationResult
+from app.schemas.visual_step import VisualSolution
 from app.services.math_adapter import MathAdapter
 from app.services.topic_solver_adapter import TopicSolverAdapter
 from app.services.validation_adapter import ValidationAdapter
@@ -64,20 +64,62 @@ def solve_by_topic(
     return TopicSolverAdapter().solve(problem_document, math_result, validation_result)
 
 
+async def extract_question_from_image(
+    gateway: AIGateway,
+    route: dict[str, str],
+    file_bytes: bytes | None,
+    mime_type: str | None,
+    warnings: list[str],
+) -> str:
+    if not file_bytes:
+        return ""
+    provider_name = route.get("vision_provider", "none")
+    if provider_name == "none":
+        warnings.append("当前模型不支持直接识图，请选择 OpenAI、Gemini 或支持视觉的 Custom API。")
+        return ""
+    try:
+        vision_result = await gateway.extract_problem_text(
+            provider_name=provider_name,
+            image_bytes=file_bytes,
+            mime_type=mime_type or "application/octet-stream",
+            model=route.get("vision_model"),
+        )
+    except Exception as exc:
+        warnings.append(f"图片识别失败，已改用输入文字继续：{exc}")
+        return ""
+
+    if vision_result.error:
+        warnings.append(f"图片识别未完成：{vision_result.error}")
+    return vision_result.text.strip()
+
+
 async def solve_problem(
     settings: Settings,
     question: str,
     subject: Subject,
     preference: ModelPreference,
     has_file: bool,
+    file_bytes: bytes | None = None,
+    mime_type: str | None = None,
 ) -> tuple[Solution, dict[str, str], list[str]]:
     gateway = AIGateway(settings)
-    problem_document = parse_problem_document(question, subject)
-    resolved_subject = "linear_algebra" if problem_document.domain == "linear_algebra" else "circuit"
     route = gateway.route(preference, needs_vision=has_file)
     warnings = await gateway.explain_bridge(preference, needs_vision=has_file)
 
-    topic = problem_document.topic if problem_document.topic != "generic" else ("gaussian_elimination" if resolved_subject == "linear_algebra" else "node_voltage")
+    extracted_text = ""
+    if has_file:
+        extracted_text = await extract_question_from_image(gateway, route, file_bytes, mime_type, warnings)
+
+    effective_question = extracted_text or question
+    problem_document = parse_problem_document(effective_question, subject)
+    if extracted_text:
+        problem_document.metadata["vision_extracted_text"] = extracted_text
+        problem_document.metadata["original_user_text"] = question
+
+    resolved_subject = "linear_algebra" if problem_document.domain == "linear_algebra" else "circuit"
+    topic = problem_document.topic if problem_document.topic != "generic" else (
+        "gaussian_elimination" if resolved_subject == "linear_algebra" else "node_voltage"
+    )
     if problem_document.topic == "generic":
         problem_document.topic = topic
 
@@ -87,11 +129,17 @@ async def solve_problem(
     visual_solution.topic = topic
     visual_solution.difficulty = problem_document.difficulty
     visual_solution.metadata["problem_document_id"] = problem_document.id
+    if extracted_text:
+        visual_solution.metadata["vision_extracted"] = True
     if math_result:
         visual_solution.metadata["math_result_success"] = math_result.success
     if validation_result:
         visual_solution.validation_summary = visual_solution.validation_summary or (
-            "Verified" if validation_result.passed else "Partial Verification" if validation_result.score > 0 else "Verification Failed"
+            "Verified"
+            if validation_result.passed
+            else "Partial Verification"
+            if validation_result.score > 0
+            else "Verification Failed"
         )
 
     reason_provider = route["reason_provider"]
@@ -100,7 +148,8 @@ async def solve_problem(
             provider_name=reason_provider,
             prompt="Return structured teaching steps for an engineering visual solver.",
             payload={
-                "question": question,
+                "question": effective_question,
+                "extracted_text": extracted_text,
                 "problem_document": problem_document.model_dump(by_alias=True),
                 "math_result": math_result.model_dump() if math_result else None,
                 "validation_result": validation_result.model_dump() if validation_result else None,
@@ -115,9 +164,9 @@ async def solve_problem(
 
     confirmation_required = resolved_subject == "circuit"
     summary = (
-        "线性代数题目已结构化，并由题型 Solver 生成教学步骤。"
+        "线性代数题目已结构化，并完成计算、验证与教学步骤生成。"
         if resolved_subject == "linear_algebra"
-        else "电路题目已结构化，并由题型 Solver 生成教学步骤。"
+        else "电路题目已结构化，并生成题型对应的教学步骤。"
     )
 
     problem = Problem(
@@ -125,10 +174,11 @@ async def solve_problem(
         input_mode="image" if has_file else "text",
         subject=resolved_subject,
         topic=topic,
-        original_text=question or "上传题目图片",
+        original_text=effective_question or "上传题目图片",
         parsed_payload={
             "mode": "mvp",
             "vision_bridge": has_file and preference.provider.value == "deepseek",
+            "vision_extracted": bool(extracted_text),
             "problem_document": problem_document.model_dump(by_alias=True),
         },
         model_selection=preference,

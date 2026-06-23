@@ -18,7 +18,7 @@ export function VisualizationPanel(props: { step?: SolutionStep; confirmationReq
         <span>{props.step.visualization.mode}</span>
       </div>
       <div
-        className="safe-svg border border-neutral-300 bg-white"
+        className="safe-svg overflow-hidden border border-neutral-300 bg-white"
         dangerouslySetInnerHTML={{ __html: props.step.visualization.svg }}
       />
       {props.confirmationRequired && props.step.index === 1 ? (

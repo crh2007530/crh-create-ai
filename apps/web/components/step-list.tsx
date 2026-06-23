@@ -13,7 +13,7 @@ export function StepList(props: {
           <button
             key={step.id}
             className={[
-              "grid grid-cols-[64px_1fr] gap-3 border p-3 text-left",
+              "grid grid-cols-[64px_1fr] gap-3 border p-3 text-left transition-colors",
               active ? "border-neutral-950 bg-neutral-50" : "border-neutral-300 bg-white"
             ].join(" ")}
             onClick={() => props.onStep(index)}

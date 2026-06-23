@@ -3,6 +3,8 @@ from app.ai.providers.base import (
     ProviderModel,
     ProviderSolveRequest,
     ProviderSolveResult,
+    ProviderVisionRequest,
+    ProviderVisionResult,
     ProviderValidation,
 )
 
@@ -19,6 +21,21 @@ class GeminiProvider(AIProvider):
             answer="",
             confidence=0.0,
             metadata={"todo": "Gemini adapter placeholder", "model": request.model or self.config.model},
+        )
+
+    async def extract_problem_text(self, request: ProviderVisionRequest) -> ProviderVisionResult:
+        if not self.config.api_key:
+            return ProviderVisionResult(
+                text="",
+                confidence=0.0,
+                metadata={"mock": True, "reason": "GEMINI_API_KEY is not set"},
+                error="GEMINI_API_KEY is not set",
+            )
+        return ProviderVisionResult(
+            text="",
+            confidence=0.0,
+            metadata={"todo": "Gemini vision adapter placeholder", "model": request.model or self.config.model},
+            error="Gemini vision extraction is not implemented yet",
         )
 
     async def list_models(self) -> list[ProviderModel]:
